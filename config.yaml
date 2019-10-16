@@ -1,0 +1,14 @@
+name: EventBrite Clone project tests
+tests:
+  - when: I visit the homepage at {{url}}
+    slug: homepage
+    tests:
+      - it: is "up"
+        slug: up
+        desc: |
+          I get a "200 OK" HTTP response. This basically just means
+          that your website is up.
+      - it: has valid HTML
+        slug: valid
+        desc: |
+          I run your homepage through an 

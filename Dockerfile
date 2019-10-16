@@ -30,6 +30,7 @@ RUN addgroup -S pptruser && adduser -S -g pptruser pptruser \
 USER pptruser
 
 WORKDIR ${WORKDIR}
-ADD package.json package-lock.json index.js ${WORKDIR}
+ADD package.json package-lock.json ${WORKDIR}
 RUN npm install
+COPY index.js config.yaml config.js ${WORKDIR}
 
