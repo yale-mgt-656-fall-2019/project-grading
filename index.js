@@ -1,7 +1,9 @@
 const puppeteer = require('puppeteer');
 const nunjucks = require('nunjucks');
-const config = require('./config.js');
+const argv = require('minimist')(process.argv.slice(2));
 // const { produce } = require('immer');
+const validator = require('validator');
+const config = require('./config.js');
 
 // Static Width (Plain Regex)
 const wrap = (s, w) => s
@@ -9,7 +11,7 @@ const wrap = (s, w) => s
     .replace(/^/g, '     ')
     .replace('\n', '\n     ');
 
-async function showOutput(testSuite, url, course, nickname) {
+function showOutput(testSuite, course, nickname, url) {
     let output = '';
     testSuite.scenarios.forEach((scenario) => {
         const when = nunjucks.renderString(scenario.when, {
@@ -41,30 +43,82 @@ function cloneObject(obj) {
 }
 
 function setTestPassed(testSuite, whenSlug, itSlug) {
-    return testSuite.scenarios.map((scenario) => scenario.tests.map((t) => {
-        const test = cloneObject(t);
-        if (scenario.slug === whenSlug && test.slug === itSlug) {
-            test.passed = true;
-        }
-        return test;
-    }));
+    const testSuiteCopy = cloneObject(testSuite);
+    testSuiteCopy.scenarios = testSuiteCopy.scenarios.map((scenario) => {
+        const newScenario = cloneObject(scenario);
+        const tests = scenario.tests.map((t) => {
+            const test = cloneObject(t);
+            if (scenario.slug === whenSlug && test.slug === itSlug) {
+                test.passed = true;
+            }
+            return test;
+        });
+        newScenario.tests = tests;
+        return newScenario;
+    });
+    return testSuiteCopy;
 }
 
+function usage(msg) {
+    console.warn(`${msg}\n`);
+    console.log('index.js COURSE TEAM_NICKNAME URL');
+}
+
+const urlOptions = {
+    protocols: ['http', 'https'],
+    require_tld: true,
+    require_protocol: true,
+    require_host: true,
+    require_valid_protocol: true,
+    allow_underscores: false,
+    host_whitelist: false,
+    host_blacklist: false,
+    allow_trailing_dot: false,
+    allow_protocol_relative_urls: false,
+    disallow_auth: false,
+};
+
 (async () => {
+    if (argv._.length !== 3) {
+        return usage('Invalid number of inputs!');
+    }
+    if (/(656|660)/.test(argv._[0]) === false) {
+        return usage(`Invalid class ${argv._[0]}. Must be 656 or 660.`);
+    }
+    if (/[a-z]-[a-z]/.test(argv._[1]) === false) {
+        return usage(`Invalid team nickname ${argv._[1]}`);
+    }
+    if (validator.isURL(argv._[2], urlOptions) === false) {
+        return usage(`Invalid URL ${argv._[1]}`);
+    }
+    const [course, nickname, url] = argv._;
+
+    // Load test descriptions
     let testSuite = config.load('./config.yaml');
-    console.log(testSuite);
+
+    // Start browser
     const browser = await puppeteer.launch({
         executablePath: '/usr/bin/chromium-browser',
         args: ['--disable-dev-shm-usage', '--no-sandbox'],
     });
+    const finish = async () => {
+        console.log(showOutput(testSuite, course, nickname, url));
+        await browser.close();
+        return true;
+    };
     const page = await browser.newPage();
-    await page.goto('https://news.ycombinator.com', {
-        waitUntil: 'networkidle2',
-    });
-    await page.pdf({ path: 'hn.pdf', format: 'A4' });
 
+    // First test
+    try {
+        await page.goto(url, {
+            waitUntil: 'networkidle2',
+            timeout: 15000,
+        });
+    } catch (e) {
+        return finish();
+    }
     testSuite = setTestPassed(testSuite, 'homepage', 'up');
-    const output = await showOutput(testSuite);
-    console.log(output);
-    await browser.close();
+
+    finish();
+    return true;
 })();

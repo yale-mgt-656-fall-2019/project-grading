@@ -14,7 +14,9 @@
     "html-validator": "^5.0.0",
     "js-yaml": "^3.13.1",
     "yup": "^0.27.0",
-    "immer": "^4.0.1"
+    "immer": "^4.0.1",
+    "minimist": "^1.2.0",
+    "validator": "^11.1.0"
   },
   "devDependencies": {
     "eslint": "^6.5.1",
