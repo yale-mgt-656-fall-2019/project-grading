@@ -2,6 +2,10 @@
 
 This is the grading code for the project.
 
+## Run locally
+
+docker-compose run test 656 foo-bar 'https://eventbrite-demo-app.herokuapp.com/'
+
 ## Requirements
 
 - All test results can be printed

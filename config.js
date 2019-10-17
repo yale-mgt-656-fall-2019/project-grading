@@ -26,6 +26,10 @@ const testSchema = yup.object().shape({
         .boolean()
         .required()
         .default(false),
+    context: yup
+        .object()
+        .required()
+        .default({}),
 });
 const testGroupSchema = yup.object().shape({
     when: yup.string().required(),

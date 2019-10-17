@@ -1,9 +1,26 @@
+console.log('woot');
+
 const puppeteer = require('puppeteer');
+
+console.log('puppeteer');
 const nunjucks = require('nunjucks');
+
+console.log('nunjucks');
 const argv = require('minimist')(process.argv.slice(2));
+
+console.log('minimist');
 // const { produce } = require('immer');
 const validator = require('validator');
+
+console.log('validator');
+const htmlValidator = require('html-validator');
+
+console.log('validator');
 const config = require('./config.js');
+
+console.log('config');
+
+console.log('woot');
 
 // Static Width (Plain Regex)
 const wrap = (s, w) => s
@@ -22,13 +39,13 @@ function showOutput(testSuite, course, nickname, url) {
         });
         output += `When ${when}\n`;
         scenario.tests.forEach((test) => {
-            const contextData = {
+            const contextData = Object.assign(test.context, {
                 testSuite,
                 test,
                 url,
                 course,
                 nickname,
-            };
+            });
             const status = test.passed ? '✅' : '❌';
             const it = nunjucks.renderString(test.it, contextData);
             const testDesc = wrap(nunjucks.renderString(test.desc, contextData));
@@ -42,14 +59,15 @@ function cloneObject(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
 
-function setTestPassed(testSuite, whenSlug, itSlug) {
+function recordTestStatus(status, testSuite, whenSlug, itSlug, context) {
     const testSuiteCopy = cloneObject(testSuite);
     testSuiteCopy.scenarios = testSuiteCopy.scenarios.map((scenario) => {
         const newScenario = cloneObject(scenario);
         const tests = scenario.tests.map((t) => {
             const test = cloneObject(t);
             if (scenario.slug === whenSlug && test.slug === itSlug) {
-                test.passed = true;
+                test.passed = status;
+                test.context = Object.assign(context || {}, test.context);
             }
             return test;
         });
@@ -78,6 +96,14 @@ const urlOptions = {
     disallow_auth: false,
 };
 
+async function validatePageMarkup(url) {
+    const result = await htmlValidator({ url });
+    if ('messages' in result) {
+        return result.messages.every((a) => a.type !== 'error');
+    }
+    return false;
+}
+
 (async () => {
     if (argv._.length !== 3) {
         return usage('Invalid number of inputs!');
@@ -99,8 +125,14 @@ const urlOptions = {
     // Start browser
     const browser = await puppeteer.launch({
         executablePath: '/usr/bin/chromium-browser',
-        args: ['--disable-dev-shm-usage', '--no-sandbox'],
+        args: [
+            '--disable-dev-shm-usage',
+            '--no-sandbox',
+            "--proxy-server='direct://'",
+            '--proxy-bypass-list=*',
+        ],
     });
+
     const finish = async () => {
         console.log(showOutput(testSuite, course, nickname, url));
         await browser.close();
@@ -108,7 +140,9 @@ const urlOptions = {
     };
     const page = await browser.newPage();
 
-    // First test
+    // --------------------- Homepage tests
+
+    // ---- up
     try {
         await page.goto(url, {
             waitUntil: 'networkidle2',
@@ -117,8 +151,38 @@ const urlOptions = {
     } catch (e) {
         return finish();
     }
-    testSuite = setTestPassed(testSuite, 'homepage', 'up');
+    testSuite = recordTestStatus(true, testSuite, 'homepage', 'up');
 
+    // ---- title
+    const homePageTitle = await page.title();
+    if (typeof homePageTitle === 'string' || homePageTitle.length > 0) {
+        testSuite = recordTestStatus(true, testSuite, 'homepage', 'title', {
+            title: homePageTitle,
+        });
+    }
+
+    // ---- valid
+    let markupValidates;
+    try {
+        markupValidates = await validatePageMarkup(url);
+    } catch (e) {
+        markupValidates = false;
+    }
+    testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
+
+    // --------------------- About tests
+    try {
+        await page.goto(url, {
+            waitUntil: 'networkidle2',
+            timeout: 5000,
+        });
+    } catch (e) {
+        console.log(e);
+        return finish();
+    }
+    testSuite = recordTestStatus(true, testSuite, 'about', 'exists');
+
+    // --------------------- DONE
     finish();
     return true;
 })();

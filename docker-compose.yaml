@@ -1,0 +1,12 @@
+version: "3"
+# I use this funky volume to prevent my host node_modules
+# from being mounted in the guest
+volumes:
+  node_modules:
+services:
+  test:
+    build: .
+    entrypoint: node ./src/index.js
+    volumes:
+      - .:/app/src
+      - node_modules/:/app/node_modules/
