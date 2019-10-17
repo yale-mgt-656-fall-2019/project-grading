@@ -13,7 +13,8 @@
     "puppeteer": "^1.19.0",
     "html-validator": "^5.0.0",
     "js-yaml": "^3.13.1",
-    "yup": "^0.27.0"
+    "yup": "^0.27.0",
+    "immer": "^4.0.1"
   },
   "devDependencies": {
     "eslint": "^6.5.1",
