@@ -36,8 +36,22 @@ async function showOutput(testSuite, url, course, nickname) {
     return output;
 }
 
+function cloneObject(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+function setTestPassed(testSuite, whenSlug, itSlug) {
+    return testSuite.scenarios.map((scenario) => scenario.tests.map((t) => {
+        const test = cloneObject(t);
+        if (scenario.slug === whenSlug && test.slug === itSlug) {
+            test.passed = true;
+        }
+        return test;
+    }));
+}
+
 (async () => {
-    const testSuite = config.load('./config.yaml');
+    let testSuite = config.load('./config.yaml');
     console.log(testSuite);
     const browser = await puppeteer.launch({
         executablePath: '/usr/bin/chromium-browser',
@@ -49,6 +63,7 @@ async function showOutput(testSuite, url, course, nickname) {
     });
     await page.pdf({ path: 'hn.pdf', format: 'A4' });
 
+    testSuite = setTestPassed(testSuite, 'homepage', 'up');
     const output = await showOutput(testSuite);
     console.log(output);
     await browser.close();
