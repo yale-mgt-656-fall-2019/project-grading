@@ -96,6 +96,17 @@ async function countSelectors(page, selectors) {
     return elementCounts;
 }
 
+async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, evalFunc) {
+    let passed;
+    try {
+        const linkCounts = await countSelectors(thePage, cssSelectors);
+        passed = evalFunc(linkCounts);
+    } catch (e) {
+        passed = false;
+    }
+    return recordTestStatus(passed, testSuite, whenKey, itKey);
+}
+
 (async () => {
     if (argv._.length !== 3) {
         return usage('Invalid number of inputs!');
@@ -177,27 +188,23 @@ async function countSelectors(page, selectors) {
     testSuite = recordTestStatus(hasCssFramework, testSuite, 'homepage', 'cssFramework');
 
     // ---------------------------------------------------------- eventLinks
-    let hasEventLinks = false;
-    try {
-        const events = [0, 1, 2];
-        const cssSelectors = events.map((event) => `a[href*="/events/${event}"]`);
-        const linkCounts = await countSelectors(page, cssSelectors);
-        hasEventLinks = linkCounts.every((e) => e > 0);
-    } catch (e) {
-        hasEventLinks = false;
-    }
-    testSuite = recordTestStatus(hasEventLinks, testSuite, 'homepage', 'eventLinks');
+    testSuite = await checkSelectors(
+        testSuite,
+        page,
+        'homepage',
+        'eventLinks',
+        [0, 1, 2].map((event) => `a[href*="/events/${event}"]`),
+        (x) => x.every((e) => e > 0),
+    );
 
-    // ---------------------------------------------------------- eventLinks
-    let hasEventTimes = false;
-    try {
-        const cssSelectors = ['time'];
-        const timeCount = await countSelectors(page, cssSelectors);
-        hasEventTimes = timeCount[0] >= 3;
-    } catch (e) {
-        hasEventTimes = false;
-    }
-    testSuite = recordTestStatus(hasEventTimes, testSuite, 'homepage', 'eventTimes');
+    testSuite = await checkSelectors(
+        testSuite,
+        page,
+        'homepage',
+        'eventTimes',
+        ['time'],
+        (x) => x[0] >= 3,
+    );
 
     // ###################################
     // ################################### About tests

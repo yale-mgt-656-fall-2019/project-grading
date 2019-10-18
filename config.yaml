@@ -35,6 +35,10 @@ scenarios:
         slug: eventTimes
         desc: >
           I'm testing for the existence of three or more <time> tags on the page.
+      - it: has a link to your about page
+        slug: aboutPageLink
+        desc: >
+          I'm testing for an <a> element with "/about" in its href attribute
   - when: I visit the about page at {{url}}/about
     slug: about
     tests:
