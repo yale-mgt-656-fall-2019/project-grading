@@ -176,16 +176,15 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
 
     // ---------------------------------------------------------- cssFrameworks
-    let hasCssFramework = false;
-    try {
-        const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
-        const cssSelectors = frameworks.map((f) => `head > link[href*="${f}"]`);
-        const frameworkCounts = await countSelectors(page, cssSelectors);
-        hasCssFramework = frameworkCounts.some((e) => e > 0);
-    } catch (e) {
-        hasCssFramework = false;
-    }
-    testSuite = recordTestStatus(hasCssFramework, testSuite, 'homepage', 'cssFramework');
+    const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
+    testSuite = await checkSelectors(
+        testSuite,
+        page,
+        'homepage',
+        'cssFramework',
+        frameworks.map((f) => `head > link[href*="${f}"]`),
+        (x) => x..some((e) => e > 0),
+    );
 
     // ---------------------------------------------------------- eventLinks
     testSuite = await checkSelectors(
