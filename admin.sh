@@ -36,6 +36,11 @@ dorun (){
     docker-compose run test $*
 }
 
+shell (){
+    export IMG=$IMAGE_NAME
+    docker-compose run --entrypoint /bin/sh test
+}
+
 ACTION=$1
 case $ACTION in
     push)
@@ -53,6 +58,9 @@ case $ACTION in
         ;;
     run)
         dorun $2 $3 $4
+        ;;
+    shell)
+        shell
         ;;
     *)
         echo "Invalid action! Must be build, push, or pull"

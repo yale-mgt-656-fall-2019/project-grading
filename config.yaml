@@ -5,23 +5,40 @@ scenarios:
     tests:
       - it: is "up"
         slug: up
-        desc: |
+        desc: >
           I get a "200 OK" HTTP response. This basically just means
           that your website is up.
       - it: has a title
         slug: title
-        desc: |
+        desc: >
           I test for a non-zero length string in the <title></title> tags of the
           page. Your title is "{{title}}"
       - it: has valid HTML
         slug: valid
-        desc: |
+        desc: >
           I run your homepage through https://validator.w3.org/nu to check it
           for errors.
+      - it: uses a popular CSS framework
+        slug: cssFramework
+        desc: >
+          I'm looking for "bootstrap", "bulma", "material", "foundation", or "semantic" in
+          the href attribute of a <link> element in the <head> of your document.
+          You should be using one of those CSS frameworks to make your pages
+          look rad. Google it.
+      - it: has links to all your events
+        slug: eventLinks
+        desc: >
+          I check for <a> element with href attributes containing '/events/0',
+          '/events/1', and '/events/2'. Of course, you might have other events.
+          The CSS selector for these is something like 'a[href*="/events/0"]'.
+      - it: each event has a time associated with it
+        slug: eventTimes
+        desc: >
+          I'm testing for the existence of three or more <time> tags on the page.
   - when: I visit the about page at {{url}}/about
     slug: about
     tests:
       - it: exists
         slug: exists
-        desc: |
+        desc: >
           I get a "200 OK" HTTP response. 

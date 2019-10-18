@@ -1,32 +1,16 @@
-console.log('woot');
-
 const puppeteer = require('puppeteer');
-
-console.log('puppeteer');
 const nunjucks = require('nunjucks');
-
-console.log('nunjucks');
 const argv = require('minimist')(process.argv.slice(2));
-
-console.log('minimist');
-// const { produce } = require('immer');
 const validator = require('validator');
-
-console.log('validator');
 const htmlValidator = require('html-validator');
-
-console.log('validator');
 const config = require('./config.js');
 
-console.log('config');
-
-console.log('woot');
-
 // Static Width (Plain Regex)
-const wrap = (s, w) => s
+const wrap = (s) => s
+    .replace(/\s+/g, ' ')
     .replace(/(?![^\n]{1,70}$)([^\n]{1,70})\s/g, '$1\n')
     .replace(/^/g, '     ')
-    .replace('\n', '\n     ');
+    .replace(/\n/g, '\n     ');
 
 function showOutput(testSuite, course, nickname, url) {
     let output = '';
@@ -51,6 +35,7 @@ function showOutput(testSuite, course, nickname, url) {
             const testDesc = wrap(nunjucks.renderString(test.desc, contextData));
             output += `${status} - it ${it}\n${testDesc}\n`;
         });
+        output += '\n';
     });
     return output;
 }
@@ -104,6 +89,13 @@ async function validatePageMarkup(url) {
     return false;
 }
 
+async function countSelectors(page, selectors) {
+    const elements = await Promise.all(selectors.map((s) => page.$$(s)));
+    const elementCounts = elements.map((e) => e.length);
+    // console.log(elementCounts);
+    return elementCounts;
+}
+
 (async () => {
     if (argv._.length !== 3) {
         return usage('Invalid number of inputs!');
@@ -140,9 +132,11 @@ async function validatePageMarkup(url) {
     };
     const page = await browser.newPage();
 
-    // --------------------- Homepage tests
+    // ###################################
+    // ################################### Homepage tests
+    // ###################################
 
-    // ---- up
+    // ---------------------------------------------------------- up
     try {
         await page.goto(url, {
             waitUntil: 'networkidle2',
@@ -153,7 +147,7 @@ async function validatePageMarkup(url) {
     }
     testSuite = recordTestStatus(true, testSuite, 'homepage', 'up');
 
-    // ---- title
+    // ---------------------------------------------------------- title
     const homePageTitle = await page.title();
     if (typeof homePageTitle === 'string' || homePageTitle.length > 0) {
         testSuite = recordTestStatus(true, testSuite, 'homepage', 'title', {
@@ -161,7 +155,7 @@ async function validatePageMarkup(url) {
         });
     }
 
-    // ---- valid
+    // ---------------------------------------------------------- valid
     let markupValidates;
     try {
         markupValidates = await validatePageMarkup(url);
@@ -170,7 +164,44 @@ async function validatePageMarkup(url) {
     }
     testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
 
-    // --------------------- About tests
+    // ---------------------------------------------------------- cssFrameworks
+    let hasCssFramework = false;
+    try {
+        const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
+        const cssSelectors = frameworks.map((f) => `head > link[href*="${f}"]`);
+        const frameworkCounts = await countSelectors(page, cssSelectors);
+        hasCssFramework = frameworkCounts.some((e) => e > 0);
+    } catch (e) {
+        hasCssFramework = false;
+    }
+    testSuite = recordTestStatus(hasCssFramework, testSuite, 'homepage', 'cssFramework');
+
+    // ---------------------------------------------------------- eventLinks
+    let hasEventLinks = false;
+    try {
+        const events = [0, 1, 2];
+        const cssSelectors = events.map((event) => `a[href*="/events/${event}"]`);
+        const linkCounts = await countSelectors(page, cssSelectors);
+        hasEventLinks = linkCounts.every((e) => e > 0);
+    } catch (e) {
+        hasEventLinks = false;
+    }
+    testSuite = recordTestStatus(hasEventLinks, testSuite, 'homepage', 'eventLinks');
+
+    // ---------------------------------------------------------- eventLinks
+    let hasEventTimes = false;
+    try {
+        const cssSelectors = ['time'];
+        const timeCount = await countSelectors(page, cssSelectors);
+        hasEventTimes = timeCount[0] >= 3;
+    } catch (e) {
+        hasEventTimes = false;
+    }
+    testSuite = recordTestStatus(hasEventTimes, testSuite, 'homepage', 'eventTimes');
+
+    // ###################################
+    // ################################### About tests
+    // ###################################
     try {
         await page.goto(url, {
             waitUntil: 'networkidle2',
@@ -182,7 +213,9 @@ async function validatePageMarkup(url) {
     }
     testSuite = recordTestStatus(true, testSuite, 'about', 'exists');
 
-    // --------------------- DONE
+    // ###################################
+    // ################################### DONE
+    // ###################################
     finish();
     return true;
 })();
