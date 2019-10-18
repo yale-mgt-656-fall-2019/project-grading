@@ -4,6 +4,7 @@ const argv = require('minimist')(process.argv.slice(2));
 const validator = require('validator');
 const htmlValidator = require('html-validator');
 const config = require('./config.js');
+const events = require('./events.js');
 
 // Static Width (Plain Regex)
 const wrap = (s) => s
@@ -16,6 +17,7 @@ function showOutput(testSuite, course, nickname, url) {
     let output = '';
     testSuite.scenarios.forEach((scenario) => {
         const when = nunjucks.renderString(scenario.when, {
+            ...testSuite.context,
             ...scenario.context,
             testSuite,
             url,
@@ -25,6 +27,7 @@ function showOutput(testSuite, course, nickname, url) {
         output += `When ${when}\n`;
         scenario.tests.forEach((test) => {
             const contextData = {
+                ...testSuite.context,
                 ...scenario.context,
                 ...test.context,
                 testSuite,
@@ -142,6 +145,7 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
 
     // Load test descriptions
     let testSuite = config.load('./config.yaml');
+    testSuite.context.events = events;
 
     // Start browser
     const browser = await puppeteer.launch({
@@ -209,7 +213,7 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     testSuite = await doTest(
         'homepage',
         'eventLinks',
-        [0, 1, 2].map((event) => `a[href*="/events/${event}"]`),
+        events.map((e) => e.id).map((event) => `a[href*="/events/${event}"]`),
         (x) => x.every((e) => e > 0),
     );
 
@@ -246,11 +250,11 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     // ###################################
     // ################################### Event tests
     // ###################################
-    const eventNo = rand([0, 1, 2]);
-    testSuite = addContextToWhen(testSuite, 'eventDetail', { eventNo });
+    const event = rand(events);
+    testSuite = addContextToWhen(testSuite, 'eventDetail', { event });
     let eventDetailPageExists = false;
     try {
-        await page.goto(`${url}/events/${eventNo}`, {
+        await page.goto(`${url}/events/${event.id}`, {
             waitUntil: 'networkidle2',
             timeout: 5000,
         });
@@ -258,9 +262,7 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     } catch (e) {
         eventDetailPageExists = false;
     }
-    testSuite = recordTestStatus(eventDetailPageExists, testSuite, 'eventDetail', 'exists', {
-        eventNo,
-    });
+    testSuite = recordTestStatus(eventDetailPageExists, testSuite, 'eventDetail', 'exists');
     testSuite = await doTest(
         'eventDetail',
         'aboutPageLink',

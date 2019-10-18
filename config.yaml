@@ -28,8 +28,11 @@ scenarios:
       - it: has links to all your events
         key: eventLinks
         desc: >
-          I check for <a> element with href attributes containing '/events/0',
-          '/events/1', and '/events/2'. Of course, you might have other events.
+          I check for {{events.length}} <a> elements with href attributes containing
+          {% for event in events %}
+            {% if loop.last %}and{% endif %}'/events/{{event.id}}'{% if loop.last %}.{% else %},{% endif %}
+          {% endfor %}
+          Of course, you might have other events.
           The CSS selector for these is something like 'a[href*="/events/0"]'.
       - it: each event has a time associated with it
         key: eventTimes
@@ -65,7 +68,7 @@ scenarios:
         key: nickname
         desc: >
           I test that the text "{{nickname}}" appears somewhere on the page
-  - when: I visit an event detail page at /events/{{eventNo}} (randomly chosen)
+  - when: I visit an event detail page at /events/{{event.id}} (randomly chosen)
     key: eventDetail
     tests:
       - it: exists
@@ -78,6 +81,11 @@ scenarios:
           I'm testing for an <a> element with "/about" in its href attribute
           inside of a <footer> element on your page.
       - it: has a link to your home page in the footer
+        key: homePageLink
+        desc: >
+          I'm testing for an <a> element with "/" alone in its href attribute
+          inside of a <footer> element on your page.
+      - it: has an h1 element with the event title
         key: homePageLink
         desc: >
           I'm testing for an <a> element with "/" alone in its href attribute

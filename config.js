@@ -49,6 +49,10 @@ const configSchema = yup.object().shape({
         .array()
         .of(whenGroupSchema)
         .required(),
+    context: yup
+        .object()
+        .required()
+        .default({}),
 });
 
 function load(filePath) {
