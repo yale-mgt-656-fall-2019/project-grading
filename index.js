@@ -215,6 +215,14 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
         (x) => x[0] >= 1,
     );
 
+    testSuite = await checkSelectors(
+        testSuite,
+        page,
+        'homepage',
+        'homePageLink',
+        ['footer a[href="/"]'],
+        (x) => x[0] >= 1,
+    );
     // ###################################
     // ################################### About tests
     // ###################################

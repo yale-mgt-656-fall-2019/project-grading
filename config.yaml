@@ -35,10 +35,15 @@ scenarios:
         slug: eventTimes
         desc: >
           I'm testing for the existence of three or more <time> tags on the page.
-      - it: has a link to your about page
+      - it: has a link to your about page in the footer
         slug: aboutPageLink
         desc: >
           I'm testing for an <a> element with "/about" in its href attribute
+          inside of a <footer> element on your page.
+      - it: has a link to your home page in the footer
+        slug: aboutPageLink
+        desc: >
+          I'm testing for an <a> element with "/" alone in its href attribute
           inside of a <footer> element on your page.
   - when: I visit the about page at {{url}}/about
     slug: about
