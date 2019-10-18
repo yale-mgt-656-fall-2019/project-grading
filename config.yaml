@@ -39,6 +39,7 @@ scenarios:
         slug: aboutPageLink
         desc: >
           I'm testing for an <a> element with "/about" in its href attribute
+          inside of a <footer> element on your page.
   - when: I visit the about page at {{url}}/about
     slug: about
     tests:
