@@ -39,6 +39,9 @@ case $ACTION in
     build)
         dobuild
         ;;
+    create)
+        docreate
+        ;;
     *)
         echo "Invalid action! Must be build, push, or pull"
         exit
