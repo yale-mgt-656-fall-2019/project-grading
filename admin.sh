@@ -32,12 +32,12 @@ dorun (){
         echo "Need 3 parameters but got $#"
         exit
     fi
-    export IMG=$IMAGE_NAME
+    export IMG=$IMAGE_PATH
     docker-compose run test $*
 }
 
 shell (){
-    export IMG=$IMAGE_NAME
+    export IMG=$IMAGE_PATH
     docker-compose run --entrypoint /bin/sh test
 }
 
