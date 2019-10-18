@@ -2,7 +2,7 @@ const yaml = require('js-yaml');
 const fs = require('fs');
 const yup = require('yup');
 
-// Todo, test for unique slugs. Can't figure this out right
+// Todo, test for unique keys. Can't figure this out right
 // now and need to move on with writing code.
 //
 // Add a method to the yup array object so that we
@@ -18,9 +18,9 @@ const yup = require('yup');
 // }
 // yup.addMethod(yup.array, 'unique', testUnique);
 
-const testSchema = yup.object().shape({
+const itSchema = yup.object().shape({
     it: yup.string().required(),
-    slug: yup.string().required(),
+    key: yup.string().required(),
     desc: yup.string().required(),
     passed: yup
         .boolean()
@@ -31,19 +31,23 @@ const testSchema = yup.object().shape({
         .required()
         .default({}),
 });
-const testGroupSchema = yup.object().shape({
+const whenGroupSchema = yup.object().shape({
     when: yup.string().required(),
-    slug: yup.string().required(),
+    key: yup.string().required(),
     tests: yup
         .array()
-        .of(testSchema)
+        .of(itSchema)
         .required(),
+    context: yup
+        .object()
+        .required()
+        .default({}),
 });
 const configSchema = yup.object().shape({
     name: yup.string().required(),
     scenarios: yup
         .array()
-        .of(testGroupSchema)
+        .of(whenGroupSchema)
         .required(),
 });
 

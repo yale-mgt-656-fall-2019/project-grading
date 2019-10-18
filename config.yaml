@@ -1,54 +1,84 @@
 name: EventBrite Clone project tests
 scenarios:
   - when: I visit the homepage at {{url}}
-    slug: homepage
+    key: homepage
     tests:
       - it: is "up"
-        slug: up
+        key: up
         desc: >
           I get a "200 OK" HTTP response. This basically just means
           that your website is up.
       - it: has a title
-        slug: title
+        key: title
         desc: >
           I test for a non-zero length string in the <title></title> tags of the
           page. Your title is "{{title}}"
       - it: has valid HTML
-        slug: valid
+        key: valid
         desc: >
           I run your homepage through https://validator.w3.org/nu to check it
           for errors.
       - it: uses a popular CSS framework
-        slug: cssFramework
+        key: cssFramework
         desc: >
           I'm looking for "bootstrap", "bulma", "material", "foundation", or "semantic" in
           the href attribute of a <link> element in the <head> of your document.
           You should be using one of those CSS frameworks to make your pages
           look rad. Google it.
       - it: has links to all your events
-        slug: eventLinks
+        key: eventLinks
         desc: >
           I check for <a> element with href attributes containing '/events/0',
           '/events/1', and '/events/2'. Of course, you might have other events.
           The CSS selector for these is something like 'a[href*="/events/0"]'.
       - it: each event has a time associated with it
-        slug: eventTimes
+        key: eventTimes
         desc: >
           I'm testing for the existence of three or more <time> tags on the page.
       - it: has a link to your about page in the footer
-        slug: aboutPageLink
+        key: aboutPageLink
         desc: >
           I'm testing for an <a> element with "/about" in its href attribute
           inside of a <footer> element on your page.
       - it: has a link to your home page in the footer
-        slug: aboutPageLink
+        key: homePageLink
         desc: >
           I'm testing for an <a> element with "/" alone in its href attribute
           inside of a <footer> element on your page.
+      - it: has a logo
+        key: logo
+        desc: >
+          I'm testing for an <img> tag with id="logo" inside a <header> element
+          on your page.
+      - it: has a link to create a new event
+        key: createEventLink
+        desc: >
+          I'm testing for an <a> tag with an href containing "/events/new" 
   - when: I visit the about page at {{url}}/about
-    slug: about
+    key: about
     tests:
       - it: exists
-        slug: exists
+        key: exists
         desc: >
           I get a "200 OK" HTTP response. 
+      - it: contains your team nickname
+        key: nickname
+        desc: >
+          I test that the text "{{nickname}}" appears somewhere on the page
+  - when: I visit an event detail page at /events/{{eventNo}} (randomly chosen)
+    key: eventDetail
+    tests:
+      - it: exists
+        key: exists
+        desc: >
+          I get a "200 OK" HTTP response. 
+      - it: has a link to your about page in the footer
+        key: aboutPageLink
+        desc: >
+          I'm testing for an <a> element with "/about" in its href attribute
+          inside of a <footer> element on your page.
+      - it: has a link to your home page in the footer
+        key: homePageLink
+        desc: >
+          I'm testing for an <a> element with "/" alone in its href attribute
+          inside of a <footer> element on your page.

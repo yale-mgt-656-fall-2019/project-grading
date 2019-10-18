@@ -16,6 +16,7 @@ function showOutput(testSuite, course, nickname, url) {
     let output = '';
     testSuite.scenarios.forEach((scenario) => {
         const when = nunjucks.renderString(scenario.when, {
+            ...scenario.context,
             testSuite,
             url,
             course,
@@ -23,13 +24,15 @@ function showOutput(testSuite, course, nickname, url) {
         });
         output += `When ${when}\n`;
         scenario.tests.forEach((test) => {
-            const contextData = Object.assign(test.context, {
+            const contextData = {
+                ...scenario.context,
+                ...test.context,
                 testSuite,
                 test,
                 url,
                 course,
                 nickname,
-            });
+            };
             const status = test.passed ? '✅' : '❌';
             const it = nunjucks.renderString(test.it, contextData);
             const testDesc = wrap(nunjucks.renderString(test.desc, contextData));
@@ -44,13 +47,17 @@ function cloneObject(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
 
-function recordTestStatus(status, testSuite, whenSlug, itSlug, context) {
+function rand(myArray) {
+    return myArray[Math.floor(Math.random() * myArray.length)];
+}
+
+function recordTestStatus(status, testSuite, whenKey, itKey, context) {
     const testSuiteCopy = cloneObject(testSuite);
     testSuiteCopy.scenarios = testSuiteCopy.scenarios.map((scenario) => {
         const newScenario = cloneObject(scenario);
         const tests = scenario.tests.map((t) => {
             const test = cloneObject(t);
-            if (scenario.slug === whenSlug && test.slug === itSlug) {
+            if (scenario.key === whenKey && test.key === itKey) {
                 test.passed = status;
                 test.context = Object.assign(context || {}, test.context);
             }
@@ -59,6 +66,17 @@ function recordTestStatus(status, testSuite, whenSlug, itSlug, context) {
         newScenario.tests = tests;
         return newScenario;
     });
+    return testSuiteCopy;
+}
+
+function addContextToWhen(testSuite, whenKey, context) {
+    const testSuiteCopy = cloneObject(testSuite);
+    for (let index = 0; index < testSuiteCopy.scenarios.length; index += 1) {
+        const scenario = testSuiteCopy.scenarios[index];
+        if (scenario.key === whenKey) {
+            scenario.context = { ...scenario.context, ...context };
+        }
+    }
     return testSuiteCopy;
 }
 
@@ -175,67 +193,81 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     }
     testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
 
+    const doTest = (whenKey, itKey, cssSelectors, evalFunc) => checkSelectors(testSuite, page, whenKey, itKey, cssSelectors, evalFunc);
+    const oneOrMore = (x) => x[0] >= 1;
+
     // ---------------------------------------------------------- cssFrameworks
-    let hasCssFramework = false;
-    try {
-        const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
-        const cssSelectors = frameworks.map((f) => `head > link[href*="${f}"]`);
-        const frameworkCounts = await countSelectors(page, cssSelectors);
-        hasCssFramework = frameworkCounts.some((e) => e > 0);
-    } catch (e) {
-        hasCssFramework = false;
-    }
-    testSuite = recordTestStatus(hasCssFramework, testSuite, 'homepage', 'cssFramework');
+    const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
+    testSuite = await doTest(
+        'homepage',
+        'cssFramework',
+        frameworks.map((f) => `head > link[href*="${f}"]`),
+        (x) => x.some((e) => e > 0),
+    );
 
     // ---------------------------------------------------------- eventLinks
-    testSuite = await checkSelectors(
-        testSuite,
-        page,
+    testSuite = await doTest(
         'homepage',
         'eventLinks',
         [0, 1, 2].map((event) => `a[href*="/events/${event}"]`),
         (x) => x.every((e) => e > 0),
     );
 
-    testSuite = await checkSelectors(
-        testSuite,
-        page,
-        'homepage',
-        'eventTimes',
-        ['time'],
-        (x) => x[0] >= 3,
-    );
+    testSuite = await doTest('homepage', 'eventTimes', ['time'], (x) => x[0] >= 3);
+    testSuite = await doTest('homepage', 'aboutPageLink', ['footer a[href*="/about"]'], oneOrMore);
+    testSuite = await doTest('homepage', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
+    testSuite = await doTest('homepage', 'logo', ['header img[id="logo"]'], oneOrMore);
+    testSuite = await doTest('homepage', 'createEventLink', ['a[href*="/events/new"]'], oneOrMore);
 
-    testSuite = await checkSelectors(
-        testSuite,
-        page,
-        'homepage',
-        'aboutPageLink',
-        ['footer a[href*="/about"]'],
-        (x) => x[0] >= 1,
-    );
-
-    testSuite = await checkSelectors(
-        testSuite,
-        page,
-        'homepage',
-        'homePageLink',
-        ['footer a[href="/"]'],
-        (x) => x[0] >= 1,
-    );
     // ###################################
     // ################################### About tests
     // ###################################
+    let aboutPageExists = false;
     try {
-        await page.goto(url, {
+        await page.goto(`${url}/about`, {
             waitUntil: 'networkidle2',
             timeout: 5000,
         });
+        aboutPageExists = true;
     } catch (e) {
-        console.log(e);
-        return finish();
+        aboutPageExists = false;
     }
-    testSuite = recordTestStatus(true, testSuite, 'about', 'exists');
+    testSuite = recordTestStatus(aboutPageExists, testSuite, 'about', 'exists');
+
+    let foundNickname = false;
+    try {
+        // eslint-disable-next-line no-undef
+        foundNickname = await page.evaluate((x) => window.find(x), nickname);
+    } catch (e) {
+        foundNickname = false;
+    }
+    testSuite = recordTestStatus(foundNickname, testSuite, 'about', 'nickname');
+
+    // ###################################
+    // ################################### Event tests
+    // ###################################
+    const eventNo = rand([0, 1, 2]);
+    testSuite = addContextToWhen(testSuite, 'eventDetail', { eventNo });
+    let eventDetailPageExists = false;
+    try {
+        await page.goto(`${url}/events/${eventNo}`, {
+            waitUntil: 'networkidle2',
+            timeout: 5000,
+        });
+        eventDetailPageExists = true;
+    } catch (e) {
+        eventDetailPageExists = false;
+    }
+    testSuite = recordTestStatus(eventDetailPageExists, testSuite, 'eventDetail', 'exists', {
+        eventNo,
+    });
+    testSuite = await doTest(
+        'eventDetail',
+        'aboutPageLink',
+        ['footer a[href*="/about"]'],
+        oneOrMore,
+    );
+    testSuite = await doTest('eventDetail', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
 
     // ###################################
     // ################################### DONE
