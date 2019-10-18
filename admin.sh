@@ -27,6 +27,15 @@ dobuild () {
     docker build -t $IMAGE_PATH .
 }
 
+dorun (){
+    if [ "$#" -ne 3 ]; then
+        echo "Need 3 parameters but got $#"
+        exit
+    fi
+    export IMG=$IMAGE_NAME
+    docker-compose run test $*
+}
+
 ACTION=$1
 case $ACTION in
     push)
@@ -41,6 +50,9 @@ case $ACTION in
         ;;
     create)
         docreate
+        ;;
+    run)
+        dorun $2 $3 $4
         ;;
     *)
         echo "Invalid action! Must be build, push, or pull"
