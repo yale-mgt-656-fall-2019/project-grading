@@ -3,6 +3,8 @@ const nunjucks = require('nunjucks');
 const argv = require('minimist')(process.argv.slice(2));
 const validator = require('validator');
 const htmlValidator = require('html-validator');
+const nodeUrl = require('url');
+const chance = require('chance').Chance();
 const config = require('./config.js');
 const events = require('./events.js');
 
@@ -117,7 +119,7 @@ async function countSelectors(page, selectors) {
     return elementCounts;
 }
 
-async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, evalFunc) {
+async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, evalFunc, context) {
     let passed;
     try {
         const linkCounts = await countSelectors(thePage, cssSelectors);
@@ -125,7 +127,88 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     } catch (e) {
         passed = false;
     }
-    return recordTestStatus(passed, testSuite, whenKey, itKey);
+    return recordTestStatus(passed, testSuite, whenKey, itKey, context);
+}
+
+async function findStrings(page, strings) {
+    // eslint-disable-next-line no-undef
+    return Promise.all(strings.map((s) => page.evaluate((x) => window.find(x), s)));
+}
+
+async function checkStrings(testSuite, thePage, whenKey, itKey, strings, evalFunc, context) {
+    let passed;
+    try {
+        console.log(`going to search for ${strings}`);
+        const stringsFound = await findStrings(thePage, strings);
+        await thePage.screenshot({ path: `screenshot-${strings[0]}.png`, fullPage: true });
+
+        console.log(`stringsFound = ${stringsFound}`);
+        passed = evalFunc(stringsFound);
+        console.log(`passed = ${passed}`);
+    } catch (e) {
+        passed = false;
+    }
+    return recordTestStatus(passed, testSuite, whenKey, itKey, context);
+}
+
+const oneOrMore = (x) => x[0] >= 1;
+const allTrue = (f) => f.every((x) => x === true);
+const allFalse = (f) => f.every((x) => x === false);
+const rsvpSubmitButtonSelector = 'form input[type="submit"], form button[type="submit"]';
+
+async function novalidate(page) {
+    // Add novalidate to all forms on the page
+    return page.$$eval('form', (forms) => {
+        for (let index = 0; index < forms.length; index += 1) {
+            const form = forms[index];
+            form.setAttribute('novalidate', true);
+        }
+    });
+}
+
+async function selectorExists(thePage, selector) {
+    return (await countSelectors(thePage, [selector]))[0] >= 1;
+}
+async function stringExists(thePage, string) {
+    return (await findStrings(thePage, [string]))[0];
+}
+
+async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, isOK) {
+    let testSuiteCopy = cloneObject(testSuite);
+    try {
+        console.log(`Trying to RSVP: ${email}`);
+        await novalidate(thePage);
+        await thePage.type('form input[type="email"]', email);
+
+        const rsvpSubmitButton = await thePage.$(rsvpSubmitButtonSelector);
+        await rsvpSubmitButton.click();
+        await thePage.waitForNavigation();
+
+        // Type some random string into the email field so that we don't
+        // get false positives when we check whether or not the person
+        // was RSVP'd. We don't want to find the email address in the
+        // input, we want to find it on the page (or not).
+        await thePage.type('form input[type="email"]', chance.string());
+        console.log(await thePage.content());
+        if (isOK) {
+            testSuiteCopy = await checkStrings(
+                testSuiteCopy,
+                thePage,
+                whenKey,
+                itKey,
+                [email],
+                allTrue,
+                { email },
+            );
+        } else {
+            const hasEmail = await stringExists(thePage, email);
+            const hasError = await selectorExists(thePage, '.errors');
+            testSuiteCopy = recordTestStatus(!hasEmail && hasError, testSuiteCopy, whenKey, itKey);
+        }
+    } catch (e) {
+        console.log(`caught error ${e}`);
+    }
+    return testSuiteCopy;
 }
 
 (async () => {
@@ -198,7 +281,6 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
 
     const doTest = (whenKey, itKey, cssSelectors, evalFunc) => checkSelectors(testSuite, page, whenKey, itKey, cssSelectors, evalFunc);
-    const oneOrMore = (x) => x[0] >= 1;
 
     // ---------------------------------------------------------- cssFrameworks
     const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
@@ -228,7 +310,7 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     // ###################################
     let aboutPageExists = false;
     try {
-        await page.goto(`${url}/about`, {
+        await page.goto(nodeUrl.resolve(url, '/about'), {
             waitUntil: 'networkidle2',
             timeout: 5000,
         });
@@ -251,10 +333,11 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     // ################################### Event tests
     // ###################################
     const event = rand(events);
+    const eventURL = nodeUrl.resolve(url, `/events/${event.id}`);
     testSuite = addContextToWhen(testSuite, 'eventDetail', { event });
     let eventDetailPageExists = false;
     try {
-        await page.goto(`${url}/events/${event.id}`, {
+        await page.goto(eventURL, {
             waitUntil: 'networkidle2',
             timeout: 5000,
         });
@@ -262,6 +345,7 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
     } catch (e) {
         eventDetailPageExists = false;
     }
+    console.log(page.url());
     testSuite = recordTestStatus(eventDetailPageExists, testSuite, 'eventDetail', 'exists');
     testSuite = await doTest(
         'eventDetail',
@@ -269,8 +353,50 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
         ['footer a[href*="/about"]'],
         oneOrMore,
     );
-    testSuite = await doTest('eventDetail', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
 
+    testSuite = await checkStrings(
+        testSuite,
+        page,
+        'eventDetail',
+        'attending',
+        event.attending,
+        allTrue,
+    );
+
+    testSuite = await doTest('eventDetail', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
+    testSuite = await doTest('eventDetail', 'rsvpForm', ['form[method="post"]'], oneOrMore);
+    testSuite = await doTest(
+        'eventDetail',
+        'rsvpFormEmail',
+        ['form input[type="email"]'],
+        oneOrMore,
+    );
+    testSuite = await doTest(
+        'eventDetail',
+        'rsvpFormSubmit',
+        [rsvpSubmitButtonSelector],
+        oneOrMore,
+    );
+
+    testSuite = await checkRSVP(
+        testSuite,
+        page,
+        'eventDetail',
+        'validRSVP',
+        eventURL,
+        chance.email({ domain: 'yale.edu' }),
+        true,
+    );
+    console.log('SDFSDFSDFSDFSDFSD');
+    testSuite = await checkRSVP(
+        testSuite,
+        page,
+        'eventDetail',
+        'invalidRSVP',
+        eventURL,
+        chance.email(),
+        false,
+    );
     // ###################################
     // ################################### DONE
     // ###################################

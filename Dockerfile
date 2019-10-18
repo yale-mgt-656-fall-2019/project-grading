@@ -31,6 +31,6 @@ USER pptruser
 
 WORKDIR ${WORKDIR}
 ADD package.json package-lock.json ${WORKDIR}
-RUN npm -g install
+RUN npm install
 COPY index.js config.yaml config.js events.js ${WORKDIR}
 

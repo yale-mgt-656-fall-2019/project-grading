@@ -8,16 +8,19 @@ scenarios:
         desc: >
           I get a "200 OK" HTTP response. This basically just means
           that your website is up.
+
       - it: has a title
         key: title
         desc: >
           I test for a non-zero length string in the <title></title> tags of the
           page. Your title is "{{title}}"
+
       - it: has valid HTML
         key: valid
         desc: >
           I run your homepage through https://validator.w3.org/nu to check it
           for errors.
+
       - it: uses a popular CSS framework
         key: cssFramework
         desc: >
@@ -25,6 +28,7 @@ scenarios:
           the href attribute of a <link> element in the <head> of your document.
           You should be using one of those CSS frameworks to make your pages
           look rad. Google it.
+
       - it: has links to all your events
         key: eventLinks
         desc: >
@@ -34,25 +38,30 @@ scenarios:
           {% endfor %}
           Of course, you might have other events.
           The CSS selector for these is something like 'a[href*="/events/0"]'.
+
       - it: each event has a time associated with it
         key: eventTimes
         desc: >
           I'm testing for the existence of three or more <time> tags on the page.
+
       - it: has a link to your about page in the footer
         key: aboutPageLink
         desc: >
           I'm testing for an <a> element with "/about" in its href attribute
           inside of a <footer> element on your page.
+
       - it: has a link to your home page in the footer
         key: homePageLink
         desc: >
           I'm testing for an <a> element with "/" alone in its href attribute
           inside of a <footer> element on your page.
+
       - it: has a logo
         key: logo
         desc: >
           I'm testing for an <img> tag with id="logo" inside a <header> element
           on your page.
+
       - it: has a link to create a new event
         key: createEventLink
         desc: >
@@ -64,6 +73,7 @@ scenarios:
         key: exists
         desc: >
           I get a "200 OK" HTTP response. 
+
       - it: contains your team nickname
         key: nickname
         desc: >
@@ -75,18 +85,66 @@ scenarios:
         key: exists
         desc: >
           I get a "200 OK" HTTP response. 
+
       - it: has a link to your about page in the footer
         key: aboutPageLink
         desc: >
           I'm testing for an <a> element with "/about" in its href attribute
           inside of a <footer> element on your page.
+
       - it: has a link to your home page in the footer
         key: homePageLink
         desc: >
           I'm testing for an <a> element with "/" alone in its href attribute
           inside of a <footer> element on your page.
+
       - it: has an h1 element with the event title
         key: homePageLink
         desc: >
           I'm testing for an <a> element with "/" alone in its href attribute
           inside of a <footer> element on your page.
+
+      - it: shows the people who have RSVP'd for the event
+        key: attending
+        desc: >
+          You should be showing at least these people attending-
+          {% set comma = joiner() %}
+          {% for person in event.attending -%}
+            {{comma()}} {{person}}
+          {%- endfor %}.
+
+      - it: has a form for RSVP'ing to the event
+        key: rsvpForm
+        desc: >
+          I test for a form with action="POST" on the page.
+
+      - it: the RSVP form has an input for the user's email address
+        key: rsvpFormEmail
+        desc: >
+          I test for a an input with type="email" inside a form element.
+
+      - it: the RSVP form has a submit button
+        key: rsvpFormSubmit
+        desc: >
+          I test for a an input with type="submit" inside a form element.
+          You can also use a button with type="submit".
+
+      - it: should allow {{email}} to RSVP
+        key: validRSVP
+        desc: >
+          I fill out the email input and submit the form. After the
+          form is submitted I check the page for the presence of the
+          email address among those attending
+
+
+      - it: should not allow {{email}} to RSVP
+        key: invalidRSVP
+        desc: >
+          I fill out the email input and submit the form. After the
+          form is submitted I check the page for the presence of the
+          email address among those attending. It should not be 
+          there. Note that I am turning off client-side form validation
+          so that you'll have to handle validation on the server!
+          I also check for an element with class="errors". This should
+          be there and it should show the user a message like 
+          "only Yalies!", though, the particular message doesn't matter.
