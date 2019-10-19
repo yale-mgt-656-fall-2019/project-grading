@@ -79,7 +79,10 @@ function addContextToWhen(testSuite, whenKey, context) {
     for (let index = 0; index < testSuiteCopy.scenarios.length; index += 1) {
         const scenario = testSuiteCopy.scenarios[index];
         if (scenario.key === whenKey) {
-            scenario.context = { ...scenario.context, ...context };
+            scenario.context = {
+                ...scenario.context,
+                ...context
+            };
         }
     }
     return testSuiteCopy;
@@ -105,7 +108,9 @@ const urlOptions = {
 };
 
 async function validatePageMarkup(url) {
-    const result = await htmlValidator({ url });
+    const result = await htmlValidator({
+        url
+    });
     if ('messages' in result) {
         return result.messages.every((a) => a.type !== 'error');
     }
@@ -138,13 +143,16 @@ async function findStrings(page, strings) {
 async function checkStrings(testSuite, thePage, whenKey, itKey, strings, evalFunc, context) {
     let passed;
     try {
-        console.log(`going to search for ${strings}`);
+        // console.log(`going to search for ${strings}`);
         const stringsFound = await findStrings(thePage, strings);
-        await thePage.screenshot({ path: `screenshot-${strings[0]}.png`, fullPage: true });
+        // await thePage.screenshot({
+        //     path: `screenshot-${strings[0]}.png`,
+        //     fullPage: true
+        // });
 
-        console.log(`stringsFound = ${stringsFound}`);
+        // console.log(`stringsFound = ${stringsFound}`);
         passed = evalFunc(stringsFound);
-        console.log(`passed = ${passed}`);
+        // console.log(`passed = ${passed}`);
     } catch (e) {
         passed = false;
     }
@@ -188,8 +196,14 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         // get false positives when we check whether or not the person
         // was RSVP'd. We don't want to find the email address in the
         // input, we want to find it on the page (or not).
-        await thePage.type('form input[type="email"]', chance.string());
-        console.log(await thePage.content());
+        // await thePage.type('form input[type="email"]', chance.string());
+        await thePage.$eval('form input[type="email"]', (el) => {
+            // eslint-disable-next-line no-param-reassign
+            el.value = '';
+        });
+        const context = {
+            email,
+        };
         if (isOK) {
             testSuiteCopy = await checkStrings(
                 testSuiteCopy,
@@ -198,12 +212,19 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
                 itKey,
                 [email],
                 allTrue,
-                { email },
+                context,
             );
         } else {
             const hasEmail = await stringExists(thePage, email);
-            const hasError = await selectorExists(thePage, '.errors');
-            testSuiteCopy = recordTestStatus(!hasEmail && hasError, testSuiteCopy, whenKey, itKey);
+            const hasError = await selectorExists(thePage, '.errors, .form-errors');
+            console.log(`hasEMail = ${hasEmail} && hasError = ${hasError} for ${email}`);
+            testSuiteCopy = recordTestStatus(
+                !hasEmail && hasError,
+                testSuiteCopy,
+                whenKey,
+                itKey,
+                context,
+            );
         }
     } catch (e) {
         console.log(`caught error ${e}`);
@@ -334,7 +355,9 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
     // ###################################
     const event = rand(events);
     const eventURL = nodeUrl.resolve(url, `/events/${event.id}`);
-    testSuite = addContextToWhen(testSuite, 'eventDetail', { event });
+    testSuite = addContextToWhen(testSuite, 'eventDetail', {
+        event
+    });
     let eventDetailPageExists = false;
     try {
         await page.goto(eventURL, {
@@ -384,7 +407,9 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         'eventDetail',
         'validRSVP',
         eventURL,
-        chance.email({ domain: 'yale.edu' }),
+        chance.email({
+            domain: 'yale.edu'
+        }),
         true,
     );
     console.log('SDFSDFSDFSDFSDFSD');
