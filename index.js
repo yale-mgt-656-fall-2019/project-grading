@@ -243,6 +243,12 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
     return testSuiteCopy;
 }
 
+async function parsePageJSON(page) {
+    // eslint-disable-next-line no-undef
+    const content = await page.evaluate(() => document.querySelector('body').innerText);
+    return JSON.parse(content);
+}
+
 (async () => {
     if (argv._.length !== 3) {
         return usage('Invalid number of inputs!');
@@ -285,81 +291,89 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
     // ###################################
 
     // ---------------------------------------------------------- up
+    let homePageUp = false;
     try {
-        await page.goto(url, {
+        const response = await page.goto(url, {
             waitUntil: 'networkidle2',
             timeout: 15000,
         });
+        homePageUp = response.status() === 200;
+        testSuite = recordTestStatus(homePageUp, testSuite, 'homepage', 'up');
     } catch (e) {
         return finish();
     }
-    testSuite = recordTestStatus(true, testSuite, 'homepage', 'up');
-
-    // ---------------------------------------------------------- title
-    const homePageTitle = await page.title();
-    if (typeof homePageTitle === 'string' && homePageTitle.length > 0) {
-        testSuite = recordTestStatus(true, testSuite, 'homepage', 'title', {
-            title: homePageTitle,
-        });
-    }
-
-    // ---------------------------------------------------------- valid
-    let markupValidates;
-    try {
-        markupValidates = await validatePageMarkup(url);
-    } catch (e) {
-        markupValidates = false;
-    }
-    testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
-
     const doTest = (whenKey, itKey, cssSelectors, evalFunc, context) => checkSelectors(testSuite, page, whenKey, itKey, cssSelectors, evalFunc, context);
 
-    // ---------------------------------------------------------- cssFrameworks
-    const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
-    testSuite = await doTest(
-        'homepage',
-        'cssFramework',
-        frameworks.map((f) => `head > link[href*="${f}"]`),
-        (x) => x.some((e) => e > 0),
-    );
+    if (homePageUp) {
+        // ---------------------------------------------------------- title
+        const homePageTitle = await page.title();
+        if (typeof homePageTitle === 'string' && homePageTitle.length > 0) {
+            testSuite = recordTestStatus(true, testSuite, 'homepage', 'title', {
+                title: homePageTitle,
+            });
+        }
 
-    // ---------------------------------------------------------- eventLinks
-    testSuite = await doTest(
-        'homepage',
-        'eventLinks',
-        events.map((e) => e.id).map((event) => `a[href*="/events/${event}"]`),
-        (x) => x.every((e) => e > 0),
-    );
+        // ---------------------------------------------------------- valid
+        let markupValidates;
+        try {
+            markupValidates = await validatePageMarkup(url);
+        } catch (e) {
+            markupValidates = false;
+        }
+        testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
 
-    testSuite = await doTest('homepage', 'eventTimes', ['time'], (x) => x[0] >= 3);
-    testSuite = await doTest('homepage', 'aboutPageLink', ['footer a[href*="/about"]'], oneOrMore);
-    testSuite = await doTest('homepage', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
-    testSuite = await doTest('homepage', 'logo', ['header img[id="logo"]'], oneOrMore);
-    testSuite = await doTest('homepage', 'createEventLink', ['a[href*="/events/new"]'], oneOrMore);
+
+        // ---------------------------------------------------------- cssFrameworks
+        const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
+        testSuite = await doTest(
+            'homepage',
+            'cssFramework',
+            frameworks.map((f) => `head > link[href*="${f}"]`),
+            (x) => x.some((e) => e > 0),
+        );
+
+        // ---------------------------------------------------------- eventLinks
+        testSuite = await doTest(
+            'homepage',
+            'eventLinks',
+            events.map((e) => e.id).map((event) => `a[href*="/events/${event}"]`),
+            (x) => x.every((e) => e > 0),
+        );
+
+        testSuite = await doTest('homepage', 'eventTimes', ['time'], (x) => x[0] >= 3);
+        testSuite = await doTest('homepage', 'aboutPageLink', ['footer a[href*="/about"]'], oneOrMore);
+        testSuite = await doTest('homepage', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
+        testSuite = await doTest('homepage', 'logo', ['header img[id="logo"]'], oneOrMore);
+        testSuite = await doTest('homepage', 'createEventLink', ['a[href*="/events/new"]'], oneOrMore);
+    }
 
     // ###################################
     // ################################### About tests
     // ###################################
     let aboutPageExists = false;
     try {
-        await page.goto(nodeUrl.resolve(url, '/about'), {
+        const response = await page.goto(nodeUrl.resolve(url, '/about'), {
             waitUntil: 'networkidle2',
             timeout: 5000,
         });
-        aboutPageExists = true;
+        if (response.status() === 200) {
+            aboutPageExists = true;
+        }
     } catch (e) {
         aboutPageExists = false;
     }
     testSuite = recordTestStatus(aboutPageExists, testSuite, 'about', 'exists');
 
-    let foundNickname = false;
-    try {
-        // eslint-disable-next-line no-undef
-        foundNickname = await page.evaluate((x) => window.find(x), nickname);
-    } catch (e) {
-        foundNickname = false;
+    if (aboutPageExists) {
+        let foundNickname = false;
+        try {
+            // eslint-disable-next-line no-undef
+            foundNickname = await page.evaluate((x) => window.find(x), nickname);
+        } catch (e) {
+            foundNickname = false;
+        }
+        testSuite = recordTestStatus(foundNickname, testSuite, 'about', 'nickname');
     }
-    testSuite = recordTestStatus(foundNickname, testSuite, 'about', 'nickname');
 
     // ###################################
     // ################################### Event tests
@@ -477,10 +491,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
     let apiEvents = {};
     let apiEventsParsed = false;
     try {
-        // eslint-disable-next-line no-undef
-        const content = await page.evaluate(() => document.querySelector('body').innerText);
-        console.log(content);
-        apiEvents = JSON.parse(content);
+        apiEvents = await parsePageJSON(page);
         apiEventsParsed = true;
     } catch (e) {
         console.log(`caught exception ${e}`);
@@ -501,6 +512,39 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
     }
     testSuite = recordTestStatus(apiEventsPresent, testSuite, 'api', 'defaultEvents');
 
+    // ###################################
+    // ################################### API EventDetail tests
+    // ###################################
+    const eventAPIURL = nodeUrl.resolve(url, `/api/events/${event.id}`);
+    testSuite = addContextToWhen(testSuite, 'apiEventDetail', {
+        event,
+    });
+    let apiEventDetailExists = false;
+    try {
+        const response = await page.goto(eventAPIURL, {
+            waitUntil: 'networkidle2',
+            timeout: 5000,
+        });
+        if (response.status() === 200) {
+            apiEventDetailExists = true;
+        }
+        testSuite = recordTestStatus(apiEventDetailExists, testSuite, 'apiEventDetail', 'exists');
+    } catch (e) {
+        console.debug(`Caught exception ${e}`);
+    }
+
+    if (apiEventDetailExists) {
+        let apiEventDetailParsed = false;
+        let apiEventDetail = {};
+        try {
+            apiEventDetail = await parsePageJSON(page);
+            apiEventDetailParsed = true;
+        } catch (e) {
+            console.log(`caught exception ${e}`);
+            apiEventDetail = {};
+        }
+        testSuite = recordTestStatus(apiEventDetailParsed, testSuite, 'apiEventDetail', 'json');
+    }
 
     // ###################################
     // ################################### DONE
