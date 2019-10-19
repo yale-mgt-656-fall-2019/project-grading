@@ -160,3 +160,28 @@ scenarios:
           I also check for an element with class="errors". This should
           be there and it should show the user a message like 
           "only Yalies!", though, the particular message doesn't matter.
+
+  - when: I visit your API at /api/events
+    key: api
+    tests:
+      - it: exists
+        key: exists
+        desc: >
+          I get a HTTP 200 OK response.
+
+      - it: is valid JSON format
+        key: json
+        desc: >
+          I try to parse your response assuming it is valid JSON.
+          Errors make the test fail.
+
+      - it: has all the default events
+        key: defaultEvents
+        desc: >
+          I'm checking for events with ids
+          {% for event in events -%}
+            {% if loop.last %}and {% endif %}{{event.id}}{% if loop.last %}.{% else %},{% endif %}
+          {% endfor -%}.
+          Your JSON should be formatted such that it has a key "events" that stores an array of
+          events. E.g. it should looks something like this
+          https://bit.ly/2J5IA2g

@@ -297,7 +297,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
 
     // ---------------------------------------------------------- title
     const homePageTitle = await page.title();
-    if (typeof homePageTitle === 'string' || homePageTitle.length > 0) {
+    if (typeof homePageTitle === 'string' && homePageTitle.length > 0) {
         testSuite = recordTestStatus(true, testSuite, 'homepage', 'title', {
             title: homePageTitle,
         });
@@ -457,6 +457,51 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         chance.email(),
         false,
     );
+
+    // ###################################
+    // ################################### API tests
+    // ###################################
+    const apiURL = nodeUrl.resolve(url, '/api/events/');
+    let apiExists = false;
+    try {
+        await page.goto(apiURL, {
+            waitUntil: 'networkidle2',
+            timeout: 5000,
+        });
+        apiExists = true;
+    } catch (e) {
+        apiExists = false;
+    }
+    testSuite = recordTestStatus(apiExists, testSuite, 'api', 'exists');
+
+    let apiEvents = {};
+    let apiEventsParsed = false;
+    try {
+        // eslint-disable-next-line no-undef
+        const content = await page.evaluate(() => document.querySelector('body').innerText);
+        console.log(content);
+        apiEvents = JSON.parse(content);
+        apiEventsParsed = true;
+    } catch (e) {
+        console.log(`caught exception ${e}`);
+        apiEvents = {};
+    }
+    testSuite = recordTestStatus(apiEventsParsed, testSuite, 'api', 'json');
+
+    let apiEventsPresent = false;
+    try {
+        // Get all the event ids from the API
+        const eventIDs = apiEvents.events.map((e) => e.id);
+        // See if all the events we expect are in there
+        apiEventsPresent = events.map((e) => eventIDs.includes(e.id)).every((x) => x === true);
+        console.log(`eventIDs = ${eventIDs}`);
+        console.log(`apiEventsPresent = ${apiEventsPresent}`);
+    } catch (e) {
+        console.log(`caught exception ${e}`);
+    }
+    testSuite = recordTestStatus(apiEventsPresent, testSuite, 'api', 'defaultEvents');
+
+
     // ###################################
     // ################################### DONE
     // ###################################
