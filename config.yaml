@@ -65,7 +65,7 @@ scenarios:
       - it: has a link to create a new event
         key: createEventLink
         desc: >
-          I'm testing for an <a> tag with an href containing "/events/new" 
+          I'm testing for an <a> tag with an href containing "/events/new"
   - when: I visit the about page at {{url}}/about
     key: about
     tests:
@@ -99,10 +99,16 @@ scenarios:
           inside of a <footer> element on your page.
 
       - it: has an h1 element with the event title
-        key: homePageLink
+        key: title
         desc: >
           I'm testing for an <a> element with "/" alone in its href attribute
           inside of a <footer> element on your page.
+
+      - it: has no errors shown on the page
+        key: noError
+        desc: >
+          I'm checking for elements with one of the following
+          classes- {{errorClasses}}.
 
       - it: shows the people who have RSVP'd for the event
         key: attending
@@ -118,12 +124,12 @@ scenarios:
         desc: >
           I test for a form with action="POST" on the page.
 
-      - it: the RSVP form has an input for the user's email address
+      - it: has an RSVP form has an input for the user's email address
         key: rsvpFormEmail
         desc: >
           I test for a an input with type="email" inside a form element.
 
-      - it: the RSVP form has a submit button
+      - it: has a submit button
         key: rsvpFormSubmit
         desc: >
           I test for a an input with type="submit" inside a form element.
@@ -135,7 +141,6 @@ scenarios:
           I fill out the email input and submit the form. After the
           form is submitted I check the page for the presence of the
           email address among those attending
-
 
       - it: should not allow {{email}} to RSVP
         key: invalidRSVP

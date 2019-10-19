@@ -159,10 +159,12 @@ async function checkStrings(testSuite, thePage, whenKey, itKey, strings, evalFun
     return recordTestStatus(passed, testSuite, whenKey, itKey, context);
 }
 
+const none = (x) => x[0] === 0;
 const oneOrMore = (x) => x[0] >= 1;
 const allTrue = (f) => f.every((x) => x === true);
 const allFalse = (f) => f.every((x) => x === false);
 const rsvpSubmitButtonSelector = 'form input[type="submit"], form button[type="submit"]';
+const formErrorSelector = '.error, .errors, .form-error, .form-errors';
 
 async function novalidate(page) {
     // Add novalidate to all forms on the page
@@ -216,7 +218,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
             );
         } else {
             const hasEmail = await stringExists(thePage, email);
-            const hasError = await selectorExists(thePage, '.errors, .form-errors');
+            const hasError = await selectorExists(thePage, formErrorSelector);
             console.log(`hasEMail = ${hasEmail} && hasError = ${hasError} for ${email}`);
             testSuiteCopy = recordTestStatus(
                 !hasEmail && hasError,
@@ -301,7 +303,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
     }
     testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
 
-    const doTest = (whenKey, itKey, cssSelectors, evalFunc) => checkSelectors(testSuite, page, whenKey, itKey, cssSelectors, evalFunc);
+    const doTest = (whenKey, itKey, cssSelectors, evalFunc, context) => checkSelectors(testSuite, page, whenKey, itKey, cssSelectors, evalFunc, context);
 
     // ---------------------------------------------------------- cssFrameworks
     const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
@@ -356,7 +358,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
     const event = rand(events);
     const eventURL = nodeUrl.resolve(url, `/events/${event.id}`);
     testSuite = addContextToWhen(testSuite, 'eventDetail', {
-        event
+        event,
     });
     let eventDetailPageExists = false;
     try {
@@ -375,6 +377,22 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         'aboutPageLink',
         ['footer a[href*="/about"]'],
         oneOrMore,
+    );
+
+    testSuite = await doTest(
+        'eventDetail',
+        'title',
+        ['h1'],
+        oneOrMore,
+    );
+
+    testSuite = await doTest(
+        'eventDetail',
+        'noError',
+        [formErrorSelector],
+        none, {
+            errorClasses: formErrorSelector.replace(/\./g, ''),
+        },
     );
 
     testSuite = await checkStrings(
@@ -408,11 +426,10 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         'validRSVP',
         eventURL,
         chance.email({
-            domain: 'yale.edu'
+            domain: 'yale.edu',
         }),
         true,
     );
-    console.log('SDFSDFSDFSDFSDFSD');
     testSuite = await checkRSVP(
         testSuite,
         page,
