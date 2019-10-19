@@ -5,8 +5,13 @@ const validator = require('validator');
 const htmlValidator = require('html-validator');
 const nodeUrl = require('url');
 const chance = require('chance').Chance();
+const crypto = require('crypto');
 const config = require('./config.js');
 const events = require('./events.js');
+
+function confirmationHash(x) {
+    return crypto.createHash('sha256').update(x).digest('hex').substr(0, 7);
+}
 
 // Static Width (Plain Regex)
 const wrap = (s) => s
@@ -41,7 +46,7 @@ function showOutput(testSuite, course, nickname, url) {
             const status = test.passed ? '✅' : '❌';
             const it = nunjucks.renderString(test.it, contextData);
             const testDesc = wrap(nunjucks.renderString(test.desc, contextData));
-            output += `${status} - it ${it}\n${testDesc}\n`;
+            output += `${status} - it ${it}\n${testDesc}\n\n`;
         });
         output += '\n';
     });
@@ -203,23 +208,27 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
             // eslint-disable-next-line no-param-reassign
             el.value = '';
         });
-        const context = {
+        let context = {
             email,
         };
         if (isOK) {
-            testSuiteCopy = await checkStrings(
+            const hasEmail = await stringExists(thePage, email);
+            const confirmationCode = confirmationHash(email);
+            const hasConfirmationHash = await stringExists(thePage, confirmationCode);
+            context = {
+                ...context,
+                confirmationCode,
+            };
+            testSuiteCopy = recordTestStatus(
+                hasEmail && hasConfirmationHash,
                 testSuiteCopy,
-                thePage,
                 whenKey,
                 itKey,
-                [email],
-                allTrue,
                 context,
             );
         } else {
             const hasEmail = await stringExists(thePage, email);
             const hasError = await selectorExists(thePage, formErrorSelector);
-            console.log(`hasEMail = ${hasEmail} && hasError = ${hasError} for ${email}`);
             testSuiteCopy = recordTestStatus(
                 !hasEmail && hasError,
                 testSuiteCopy,
@@ -392,6 +401,15 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         [formErrorSelector],
         none, {
             errorClasses: formErrorSelector.replace(/\./g, ''),
+        },
+    );
+
+    testSuite = await doTest(
+        'eventDetail',
+        'donateLink',
+        [`a[href*="/events/${event.id}/donate"]`],
+        oneOrMore, {
+            link: `/events/${event.id}/donate`,
         },
     );
 

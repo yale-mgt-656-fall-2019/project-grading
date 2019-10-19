@@ -110,6 +110,11 @@ scenarios:
           I'm checking for elements with one of the following
           classes- {{errorClasses}}.
 
+      - it: has a link to donate to the event
+        key: donateLink
+        desc: >
+          I'm checking for an <a> with href containing {{link}}
+
       - it: shows the people who have RSVP'd for the event
         key: attending
         desc: >
@@ -139,8 +144,10 @@ scenarios:
         key: validRSVP
         desc: >
           I fill out the email input and submit the form. After the
-          form is submitted I check the page for the presence of the
-          email address among those attending
+          form is submitted I check the page for the presence of
+          {{email}} among those attending and a confirmation code
+          of {{confirmationCode}}, which is the first seven characters
+          of the sha256 hash of {{email}}.
 
       - it: should not allow {{email}} to RSVP
         key: invalidRSVP
