@@ -22,6 +22,7 @@ const itSchema = yup.object().shape({
     it: yup.string().required(),
     key: yup.string().required(),
     desc: yup.string().required(),
+    wrap: yup.boolean().required().default(true),
     passed: yup
         .boolean()
         .required()

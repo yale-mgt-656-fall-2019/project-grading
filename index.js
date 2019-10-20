@@ -17,6 +17,8 @@ function confirmationHash(x) {
 const wrap = (s) => s
     .replace(/\s+/g, ' ')
     .replace(/(?![^\n]{1,70}$)([^\n]{1,70})\s/g, '$1\n')
+
+const indent = (s) => s
     .replace(/^/g, '     ')
     .replace(/\n/g, '\n     ');
 
@@ -45,7 +47,11 @@ function showOutput(testSuite, course, nickname, url) {
             };
             const status = test.passed ? '✅' : '❌';
             const it = nunjucks.renderString(test.it, contextData);
-            const testDesc = wrap(nunjucks.renderString(test.desc, contextData));
+            let testDesc = nunjucks.renderString(test.desc, contextData);
+            if (test.wrap) {
+                testDesc = wrap(testDesc);
+            }
+            testDesc = indent(testDesc);
             output += `${status} - it ${it}\n${testDesc}\n\n`;
         });
         output += '\n';
@@ -86,7 +92,7 @@ function addContextToWhen(testSuite, whenKey, context) {
         if (scenario.key === whenKey) {
             scenario.context = {
                 ...scenario.context,
-                ...context
+                ...context,
             };
         }
     }
@@ -393,7 +399,6 @@ async function parsePageJSON(page) {
     } catch (e) {
         eventDetailPageExists = false;
     }
-    console.log(page.url());
     testSuite = recordTestStatus(eventDetailPageExists, testSuite, 'eventDetail', 'exists');
     testSuite = await doTest(
         'eventDetail',
