@@ -186,7 +186,7 @@ scenarios:
           events. E.g. it should looks something like this
           https://bit.ly/2J5IA2g
 
-  - when: I visit your API at /api/events/{{event.id}}
+  - when: I visit your API for a specific event at /api/events/{{event.id}}
     key: apiEventDetail
     tests:
       - it: exists
