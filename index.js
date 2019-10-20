@@ -544,7 +544,51 @@ async function parsePageJSON(page) {
             apiEventDetail = {};
         }
         testSuite = recordTestStatus(apiEventDetailParsed, testSuite, 'apiEventDetail', 'json');
+        if (apiEventDetailParsed) {
+            testSuite = recordTestStatus(apiEventDetail.title === event.title, testSuite, 'apiEventDetail', 'info', {
+                event,
+            });
+        }
     }
+    // ###################################
+    // ################################### Event creation tests
+    // ###################################
+    const eventCreationURL = nodeUrl.resolve(url, '/events/new');
+    let eventCreationPageExists = false;
+    try {
+        await page.goto(eventCreationURL, {
+            waitUntil: 'networkidle2',
+            timeout: 5000,
+        });
+        eventCreationPageExists = true;
+    } catch (e) {
+        eventCreationPageExists = false;
+    }
+    testSuite = recordTestStatus(eventCreationPageExists, testSuite, 'eventCreation', 'exists');
+
+    if (eventCreationPageExists) {
+        testSuite = await doTest(
+            'eventCreation',
+            'form',
+            ['form'],
+            oneOrMore,
+        );
+        const formSelectors = [
+            'form input[type="text"][name="title"]',
+            'form input[type="text"][name="location"]',
+            'form input[type="url"][name="image"]',
+            'form input[type="datetime-local"][name="datetime"]',
+        ];
+        testSuite = await doTest(
+            'eventCreation',
+            'formFields',
+            formSelectors,
+            (selCount) => selCount === 1, {
+                selectors: formSelectors
+            },
+        );
+    }
+
 
     // ###################################
     // ################################### DONE

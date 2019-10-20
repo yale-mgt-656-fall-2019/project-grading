@@ -204,4 +204,27 @@ scenarios:
         key: info
         desc: >
           I should find that it has the right title information. The
-          title should be "{{title}}".
+          title should be "{{event.title}}".
+
+  - when: I visit page for creating a new event at /events/new
+    key: eventCreation
+    tests:
+      - it: exists
+        key: exists
+        desc: >
+          I get a HTTP 200 OK response.
+
+      - it: has a form for submitting a new event
+        key: form
+        desc: >
+          I test for a form element on the page
+
+      - it: the form has inputs for title, location, image URL, and date
+        key: formFields
+        wrap: false
+        desc: >
+          I test for the following CSS selectors
+
+          {% for selector in selectors -%}
+            * {{selector|safe}}
+          {% endfor -%}.
