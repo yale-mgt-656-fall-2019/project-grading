@@ -132,7 +132,8 @@ scenarios:
       - it: has an RSVP form has an input for the user's email address
         key: rsvpFormEmail
         desc: >
-          I test for a an input with type="email" inside a form element.
+          I test for a an input with type="email" and name="email"
+          inside a form element.
 
       - it: has a submit button
         key: rsvpFormSubmit

@@ -124,7 +124,7 @@ async function validatePageMarkup(data) {
             data,
         }),
     );
-
+    console.log(`validation result= ${JSON.stringify(result.messages, ' ', 4)}`);
     if (Array.isArray(result.messages)) {
         if (result.messages.length === 0) {
             return true;
@@ -153,8 +153,10 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
 }
 
 async function findStrings(page, strings) {
-    // eslint-disable-next-line no-undef
-    return Promise.all(strings.map((s) => page.evaluate((x) => window.find(x), s)));
+    return Promise.all(
+        // eslint-disable-next-line no-undef
+        strings.map((s) => page.evaluate((x) => window.find(x, false, false, true), s)),
+    );
 }
 
 async function checkStrings(testSuite, thePage, whenKey, itKey, strings, evalFunc, context) {
@@ -205,7 +207,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
     try {
         console.log(`Trying to RSVP: ${email}`);
         await novalidate(thePage);
-        await thePage.type('form input[type="email"]', email);
+        await thePage.type('form input[type="email"][name="email"]', email);
 
         const rsvpSubmitButton = await thePage.$(rsvpSubmitButtonSelector);
         await rsvpSubmitButton.click();
@@ -227,6 +229,14 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
             const hasEmail = await stringExists(thePage, email);
             const confirmationCode = confirmationHash(email);
             const hasConfirmationHash = await stringExists(thePage, confirmationCode);
+            console.log(
+                `Testing RSVP of ${email}: hasEmail=${hasEmail}; hasConfirmationHash=${hasConfirmationHash}`,
+            );
+            await thePage.screenshot({
+                path: `screenshot-${email}.png`,
+                fullPage: true,
+            });
+
             context = {
                 ...context,
                 confirmationCode,
@@ -241,6 +251,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         } else {
             const hasEmail = await stringExists(thePage, email);
             const hasError = await selectorExists(thePage, formErrorSelector);
+            console.log(`Testing RSVP of ${email}: hasEmail=${hasEmail}; hasError=${hasError}`);
             testSuiteCopy = recordTestStatus(
                 !hasEmail && hasError,
                 testSuiteCopy,
@@ -258,6 +269,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
 async function parsePageJSON(page) {
     // eslint-disable-next-line no-undef
     const content = await page.evaluate(() => document.querySelector('body').innerText);
+    console.log(content);
     return JSON.parse(content);
 }
 
@@ -488,7 +500,7 @@ async function parsePageJSON(page) {
     // ###################################
     // ################################### API tests
     // ###################################
-    const apiURL = nodeUrl.resolve(url, '/api/events/');
+    const apiURL = nodeUrl.resolve(url, '/api/events');
     let apiExists = false;
     try {
         await page.goto(apiURL, {
@@ -591,7 +603,7 @@ async function parsePageJSON(page) {
             'form input[type="text"][name="title"]',
             'form input[type="text"][name="location"]',
             'form input[type="url"][name="image"]',
-            'form input[type="datetime-local"][name="datetime"]',
+            'form input[type="datetime-local"][name="date"]',
         ];
         testSuite = await doTest(
             'eventCreation',

@@ -4,7 +4,9 @@ This is the grading code for the project.
 
 ## Run locally
 
-docker-compose run test 656 foo-bar 'https://eventbrite-demo-app.herokuapp.com/'
+```
+./admin.sh run 656 foo-bar 'http://host.docker.internal:8080'
+```
 
 ## TODO
 
