@@ -10,17 +10,17 @@ const config = require('./config.js');
 const events = require('./events.js');
 
 function confirmationHash(x) {
-    return crypto.createHash('sha256').update(x).digest('hex').substr(0, 7);
+    return crypto
+        .createHash('sha256')
+        .update(x)
+        .digest('hex')
+        .substr(0, 7);
 }
 
 // Static Width (Plain Regex)
-const wrap = (s) => s
-    .replace(/\s+/g, ' ')
-    .replace(/(?![^\n]{1,70}$)([^\n]{1,70})\s/g, '$1\n')
+const wrap = (s) => s.replace(/\s+/g, ' ').replace(/(?![^\n]{1,70}$)([^\n]{1,70})\s/g, '$1\n');
 
-const indent = (s) => s
-    .replace(/^/g, '     ')
-    .replace(/\n/g, '\n     ');
+const indent = (s) => s.replace(/^/g, '     ').replace(/\n/g, '\n     ');
 
 function showOutput(testSuite, course, nickname, url) {
     let output = '';
@@ -118,11 +118,17 @@ const urlOptions = {
     disallow_auth: false,
 };
 
-async function validatePageMarkup(url) {
-    const result = await htmlValidator({
-        url
-    });
-    if ('messages' in result) {
+async function validatePageMarkup(data) {
+    const result = JSON.parse(
+        await htmlValidator({
+            data,
+        }),
+    );
+
+    if (Array.isArray(result.messages)) {
+        if (result.messages.length === 0) {
+            return true;
+        }
         return result.messages.every((a) => a.type !== 'error');
     }
     return false;
@@ -322,12 +328,13 @@ async function parsePageJSON(page) {
         // ---------------------------------------------------------- valid
         let markupValidates;
         try {
-            markupValidates = await validatePageMarkup(url);
+            const markup = await page.content();
+            markupValidates = await validatePageMarkup(markup);
         } catch (e) {
+            console.log(`caught exception doing validation: ${e}`);
             markupValidates = false;
         }
         testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
-
 
         // ---------------------------------------------------------- cssFrameworks
         const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
@@ -347,10 +354,20 @@ async function parsePageJSON(page) {
         );
 
         testSuite = await doTest('homepage', 'eventTimes', ['time'], (x) => x[0] >= 3);
-        testSuite = await doTest('homepage', 'aboutPageLink', ['footer a[href*="/about"]'], oneOrMore);
+        testSuite = await doTest(
+            'homepage',
+            'aboutPageLink',
+            ['footer a[href*="/about"]'],
+            oneOrMore,
+        );
         testSuite = await doTest('homepage', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
         testSuite = await doTest('homepage', 'logo', ['header img[id="logo"]'], oneOrMore);
-        testSuite = await doTest('homepage', 'createEventLink', ['a[href*="/events/new"]'], oneOrMore);
+        testSuite = await doTest(
+            'homepage',
+            'createEventLink',
+            ['a[href*="/events/new"]'],
+            oneOrMore,
+        );
     }
 
     // ###################################
@@ -407,27 +424,18 @@ async function parsePageJSON(page) {
         oneOrMore,
     );
 
-    testSuite = await doTest(
-        'eventDetail',
-        'title',
-        ['h1'],
-        oneOrMore,
-    );
+    testSuite = await doTest('eventDetail', 'title', ['h1'], oneOrMore);
 
-    testSuite = await doTest(
-        'eventDetail',
-        'noError',
-        [formErrorSelector],
-        none, {
-            errorClasses: formErrorSelector.replace(/\./g, ''),
-        },
-    );
+    testSuite = await doTest('eventDetail', 'noError', [formErrorSelector], none, {
+        errorClasses: formErrorSelector.replace(/\./g, ''),
+    });
 
     testSuite = await doTest(
         'eventDetail',
         'donateLink',
         [`a[href*="/events/${event.id}/donate"]`],
-        oneOrMore, {
+        oneOrMore,
+        {
             link: `/events/${event.id}/donate`,
         },
     );
@@ -550,9 +558,15 @@ async function parsePageJSON(page) {
         }
         testSuite = recordTestStatus(apiEventDetailParsed, testSuite, 'apiEventDetail', 'json');
         if (apiEventDetailParsed) {
-            testSuite = recordTestStatus(apiEventDetail.title === event.title, testSuite, 'apiEventDetail', 'info', {
-                event,
-            });
+            testSuite = recordTestStatus(
+                apiEventDetail.title === event.title,
+                testSuite,
+                'apiEventDetail',
+                'info',
+                {
+                    event,
+                },
+            );
         }
     }
     // ###################################
@@ -572,12 +586,7 @@ async function parsePageJSON(page) {
     testSuite = recordTestStatus(eventCreationPageExists, testSuite, 'eventCreation', 'exists');
 
     if (eventCreationPageExists) {
-        testSuite = await doTest(
-            'eventCreation',
-            'form',
-            ['form'],
-            oneOrMore,
-        );
+        testSuite = await doTest('eventCreation', 'form', ['form'], oneOrMore);
         const formSelectors = [
             'form input[type="text"][name="title"]',
             'form input[type="text"][name="location"]',
@@ -588,12 +597,12 @@ async function parsePageJSON(page) {
             'eventCreation',
             'formFields',
             formSelectors,
-            (selCount) => selCount === 1, {
-                selectors: formSelectors
+            (selCount) => selCount === 1,
+            {
+                selectors: formSelectors,
             },
         );
     }
-
 
     // ###################################
     // ################################### DONE
