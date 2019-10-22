@@ -144,8 +144,11 @@ async function countSelectors(page, selectors) {
 async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, evalFunc, context) {
     let passed;
     try {
-        const linkCounts = await countSelectors(thePage, cssSelectors);
-        passed = evalFunc(linkCounts);
+        const counts = await countSelectors(thePage, cssSelectors);
+        console.log(`selectors = ${cssSelectors}`);
+        console.log(`counts = ${counts}`);
+        passed = evalFunc(counts);
+        console.log(`passed = ${passed}`);
     } catch (e) {
         passed = false;
     }
@@ -180,6 +183,7 @@ async function checkStrings(testSuite, thePage, whenKey, itKey, strings, evalFun
 
 const none = (x) => x[0] === 0;
 const oneOrMore = (x) => x[0] >= 1;
+const allOnes = (f) => f.every((x) => x === 1);
 const allTrue = (f) => f.every((x) => x === true);
 const allFalse = (f) => f.every((x) => x === false);
 const rsvpSubmitButtonSelector = 'form input[type="submit"], form button[type="submit"]';
@@ -205,7 +209,6 @@ async function stringExists(thePage, string) {
 async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, isOK) {
     let testSuiteCopy = cloneObject(testSuite);
     try {
-        console.log(`Trying to RSVP: ${email}`);
         await novalidate(thePage);
         await thePage.type('form input[type="email"][name="email"]', email);
 
@@ -229,13 +232,6 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
             const hasEmail = await stringExists(thePage, email);
             const confirmationCode = confirmationHash(email);
             const hasConfirmationHash = await stringExists(thePage, confirmationCode);
-            console.log(
-                `Testing RSVP of ${email}: hasEmail=${hasEmail}; hasConfirmationHash=${hasConfirmationHash}`,
-            );
-            await thePage.screenshot({
-                path: `screenshot-${email}.png`,
-                fullPage: true,
-            });
 
             context = {
                 ...context,
@@ -251,7 +247,6 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         } else {
             const hasEmail = await stringExists(thePage, email);
             const hasError = await selectorExists(thePage, formErrorSelector);
-            console.log(`Testing RSVP of ${email}: hasEmail=${hasEmail}; hasError=${hasError}`);
             testSuiteCopy = recordTestStatus(
                 !hasEmail && hasError,
                 testSuiteCopy,
@@ -261,7 +256,7 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
             );
         }
     } catch (e) {
-        console.log(`caught error ${e}`);
+        console.debug(`caught error ${e}`);
     }
     return testSuiteCopy;
 }
@@ -269,8 +264,22 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
 async function parsePageJSON(page) {
     // eslint-disable-next-line no-undef
     const content = await page.evaluate(() => document.querySelector('body').innerText);
-    console.log(content);
     return JSON.parse(content);
+}
+
+function getTestSuiteResult(testSuite, whenKey, itKey) {
+    for (let i = 0; i < testSuite.scenarios.length; i += 1) {
+        const scenario = testSuite.scenarios[i];
+        if (scenario.key === whenKey) {
+            for (let j = 0; j < scenario.tests.length; j += 1) {
+                const test = scenario.tests[j];
+                if (test.key === itKey) {
+                    return test.passed;
+                }
+            }
+        }
+    }
+    return null;
 }
 
 (async () => {
@@ -597,6 +606,7 @@ async function parsePageJSON(page) {
     }
     testSuite = recordTestStatus(eventCreationPageExists, testSuite, 'eventCreation', 'exists');
 
+    let eventCreationFormOK = false;
     if (eventCreationPageExists) {
         testSuite = await doTest('eventCreation', 'form', ['form'], oneOrMore);
         const formSelectors = [
@@ -609,13 +619,16 @@ async function parsePageJSON(page) {
             'eventCreation',
             'formFields',
             formSelectors,
-            (selCount) => selCount === 1,
+            allOnes,
             {
                 selectors: formSelectors,
             },
         );
+        eventCreationFormOK = getTestSuiteResult(testSuite, 'eventCreation', 'formFields');
     }
-
+    if (eventCreationFormOK) {
+        console.log('woot');
+    }
     // ###################################
     // ################################### DONE
     // ###################################
