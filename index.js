@@ -8,6 +8,7 @@ const chance = require('chance').Chance();
 const crypto = require('crypto');
 const config = require('./config.js');
 const events = require('./events.js');
+const badevents = require('./badevents.js');
 
 function confirmationHash(x) {
     return crypto
@@ -629,6 +630,11 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
     if (eventCreationFormOK) {
         console.log('woot');
     }
+
+    if (eventCreationFormOK) {
+        console.log(badevents.get());
+    }
+
     // ###################################
     // ################################### DONE
     // ###################################
