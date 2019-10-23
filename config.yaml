@@ -220,7 +220,18 @@ scenarios:
         desc: >
           I test for a form element on the page
 
-      - it: the form has inputs for title, location, image URL, and date
+      - it: does not have an errors shown on the page by default
+        key: noError
+        desc: >
+          When a user creates an event with invalid data, an error
+          message should be shown to them. There should be no error
+          message on the page otherwise. 
+          I'm checking for elements with one of the following
+          classes- {{errorClasses}}.
+
+      - it: |
+          the form has inputs for title, location, image URL, date and a
+          submit button
         key: formFields
         wrap: false
         desc: >
@@ -229,3 +240,57 @@ scenarios:
           {% for selector in selectors -%}
             * {{selector|safe}}
           {% endfor -%}.
+
+      - it: does not allow creating an event with bad title
+        key: badTitle
+        desc: > 
+          Titles must be more than 5 and fewer than 50 unicode characters. If the 
+          title is invalid, you should return the user to the form (at the same
+          URL) and show them their error. I'm checking for elements with one
+          of the following
+          classes- {{errorClasses}}. The invalid title I submitted was "{{event.title}}".
+
+      - it: does not allow creating an event with bad location
+        key: badLocation
+        desc: > 
+          Location must be more than 5 and fewer than 50 unicode characters. If the 
+          location is invalid, you should return the user to the form (at the same
+          URL) and show them their error. I'm checking for elements with one
+          of the following
+          classes- {{errorClasses}}. The invalid location I submitted was
+          "{{event.location}}".
+
+      - it: does not allow creating an event with bad image
+        key: badImage
+        desc: > 
+          Images should be a valid URL and be one of the following file types-
+            ".png", ".jpg", ".jpeg", ".gif", or ".gifv".
+           If the 
+          image is invalid, you should return the user to the form (at the same
+          URL) and show them their error. I'm checking for elements with one
+          of the following
+          classes- {{errorClasses}}. The invalid location I submitted was
+          "{{event.location}}".
+
+      - it: does not allow creating an event with bad date
+        key: badDate
+        desc: > 
+          Dates must be be in the format "2006-01-02T15:04" and also be in the
+          future. If the 
+          date is invalid, you should return the user to the form (at the same
+          URL) and show them their error. The bad I'm checking for elements with one
+          of the following
+          classes- {{errorClasses}}. The invalid date I submitted was
+          "{{event.date}}".
+
+      - it: allows creating a valid event
+        key: validEvent
+        desc: > 
+          If I submit valid event information, you should create the new
+          event and then redirect me to the event detail page at "/events/ID"
+          where "ID" is the id of the new event. There should be no errors
+          on the page. I'm checking for elements with one
+          of the following
+          classes- {{errorClasses}}. The valid event I submitted was 
+          "{{event.title}}" at "{{event.location}}" on "{{event.date}}"
+          with image "{{event.image}}".

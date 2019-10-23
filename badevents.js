@@ -52,7 +52,7 @@ function randomDate() {
 
 function newDatetime() {
     const d = moment(randomDate());
-    return d.format().replace(/\+.*/, '');
+    return d.format('YYYY-MM-DDTHH:mm');
 }
 
 
@@ -87,7 +87,8 @@ function randomFacultyLocation() {
         'house',
         'underground bunker',
         'offgrid warehouse',
-        'penthouse manhattan home',
+        'evil villian lair',
+        'Manhattan penthouse',
         'roofdeck',
         'abandoned warehouse',
         'panic room',
@@ -118,7 +119,6 @@ function getBadDate() {
         'invalid day',
         'invalid hour',
         'invalid minute',
-        'invalid second',
         'invalid format',
     ]);
     let randomMoment = moment().add(getRandomInt(600) + 366, 'days');
@@ -128,13 +128,12 @@ function getBadDate() {
         day: randomMoment.date().toString(),
         hour: randomMoment.hour().toString(),
         minute: randomMoment.minute().toString(),
-        second: randomMoment.second().toString(),
     });
     let e = getEventTime();
     const randi = (min, max) => (getRandomInt(max - min) + min).toString();
     switch (flaw) {
     case 'past':
-        randomMoment = moment.add(-getRandomInt(600), 'days');
+        randomMoment = moment().add(-getRandomInt(600), 'days');
         e = getEventTime();
         break;
     case 'invalid month':
@@ -148,9 +147,6 @@ function getBadDate() {
         break;
     case 'invalid minute':
         e.minute = randi(61, 300);
-        break;
-    case 'invalid second':
-        e.second = randi(61, 4839);
         break;
     case 'invalid format':
         return {
@@ -172,8 +168,12 @@ function getBadDate() {
     const p = (x) => x.padStart(2, '0');
     return {
         flaw,
-        date: `${e.year}-${p(e.month)}-${p(e.month)}T${p(e.hour)}:${p(e.minute)}:${p(e.second)}`,
+        date: `${e.year}-${p(e.month)}-${p(e.month)}T${p(e.hour)}:${p(e.minute)}`,
     };
+}
+function capitalize(s) {
+    if (typeof s !== 'string') return '';
+    return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function newEvent(flaw) {
@@ -189,7 +189,7 @@ function newEvent(flaw) {
         event.title = getLongSentence(150);
         break;
     case 'date':
-        event.date = getBadDate();
+        event.date = getBadDate().date;
         break;
     case 'image':
         event.image = rand([
@@ -205,9 +205,17 @@ function newEvent(flaw) {
         console.debug('no flaw');
     }
 
+    let key;
+    if (flaw) {
+        key = `bad${capitalize(flaw)}`;
+    } else {
+        key = 'validEvent';
+    }
+
     const eventInfo = {
         event,
         flaw,
+        key,
     };
     return eventInfo;
 }
