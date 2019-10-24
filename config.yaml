@@ -13,7 +13,9 @@ scenarios:
         key: title
         desc: >
           I test for a non-zero length string in the <title></title> tags of the
-          page. Your title is "{{title}}"
+          page.
+        details: >
+          Your title is "{{title}}"
 
       - it: has valid HTML
         key: valid
@@ -32,6 +34,8 @@ scenarios:
       - it: has links to all your events
         key: eventLinks
         desc: >
+          That is, your homepage should list all the events people can attend.
+        details: >
           I check for {{events.length}} <a> elements with href attributes containing
           {% for event in events %}
             {% if loop.last %}and{% endif %}'/events/{{event.id}}'{% if loop.last %}.{% else %},{% endif %}
@@ -77,7 +81,11 @@ scenarios:
       - it: contains your team nickname
         key: nickname
         desc: >
-          I test that the text "{{nickname}}" appears somewhere on the page
+          The nickname is the team nickname you find in the dashboard
+          on the class website.
+        details: >
+          You indicated that your team nickname is "{{nickname}}" and 
+          I expect to see that text somewhere on your about page.
   - when: I visit an event detail page at /events/{{event.id}} (randomly chosen)
     key: eventDetail
     tests:
@@ -107,18 +115,27 @@ scenarios:
       - it: has no errors shown on the page
         key: noError
         desc: >
+          When I first load the page, there should be no errors,
+          clearly.
+        details: >
           I'm checking for elements with one of the following
           classes- {{errorClasses}}.
 
       - it: has a link to donate to the event
         key: donateLink
         desc: >
+          This is how users would donate in order to support
+          the event.
+        details: >
           I'm checking for an <a> with href containing {{link}}
 
       - it: shows the people who have RSVP'd for the event
         key: attending
         desc: >
-          You should be showing at least these people attending-
+          The page should show these email addresses of those
+          attending. 
+        details: >
+          You should be showing at least these people
           {% set comma = joiner() %}
           {% for person in event.attending -%}
             {{comma()}} {{person}}
@@ -146,8 +163,11 @@ scenarios:
         desc: >
           I fill out the email input and submit the form. After the
           form is submitted I check the page for the presence of
-          {{email}} among those attending and a confirmation code
-          of {{confirmationCode}}, which is the first seven characters
+          the email address and confirmation code.
+        details: >
+          The email address
+          and confirmation code for which I checked this time are
+          {{email}} and {{confirmationCode}}, which is the first seven characters
           of the sha256 hash of {{email}}.
 
       - it: should not allow {{email}} to RSVP
@@ -179,13 +199,15 @@ scenarios:
       - it: has all the default events
         key: defaultEvents
         desc: >
+          Your JSON should be formatted such that it has a key "events" that stores an array of
+          events. E.g. it should looks something like this
+          https://bit.ly/2J5IA2g
+        details: >
           I'm checking for events with ids
           {% for event in events -%}
             {% if loop.last %}and {% endif %}{{event.id}}{% if loop.last %}.{% else %},{% endif %}
           {% endfor -%}.
-          Your JSON should be formatted such that it has a key "events" that stores an array of
-          events. E.g. it should looks something like this
-          https://bit.ly/2J5IA2g
+
 
   - when: I visit your API for a specific event at /api/events/{{event.id}}
     key: apiEventDetail
@@ -204,7 +226,9 @@ scenarios:
       - it: has the right event information
         key: info
         desc: >
-          I should find that it has the right title information. The
+          I should find that it has the right title information.
+        details: >
+          The
           title should be "{{event.title}}".
 
   - when: I visit page for creating a new event at /events/new
@@ -226,6 +250,7 @@ scenarios:
           When a user creates an event with invalid data, an error
           message should be shown to them. There should be no error
           message on the page otherwise. 
+        details: >
           I'm checking for elements with one of the following
           classes- {{errorClasses}}.
 
@@ -235,6 +260,8 @@ scenarios:
         key: formFields
         wrap: false
         desc: >
+          These should all be on the page.
+        details: >
           I test for the following CSS selectors
 
           {% for selector in selectors -%}
@@ -246,7 +273,9 @@ scenarios:
         desc: > 
           Titles must be more than 5 and fewer than 50 unicode characters. If the 
           title is invalid, you should return the user to the form (at the same
-          URL) and show them their error. I'm checking for elements with one
+          URL) and show them their error.
+        details: >
+          I'm checking for elements with one
           of the following
           classes- {{errorClasses}}. The invalid title I submitted was "{{event.title}}".
 
@@ -255,7 +284,9 @@ scenarios:
         desc: > 
           Location must be more than 5 and fewer than 50 unicode characters. If the 
           location is invalid, you should return the user to the form (at the same
-          URL) and show them their error. I'm checking for elements with one
+          URL) and show them their error.
+        details: >
+          I'm checking for elements with one
           of the following
           classes- {{errorClasses}}. The invalid location I submitted was
           "{{event.location}}".
@@ -264,10 +295,12 @@ scenarios:
         key: badImage
         desc: > 
           Images should be a valid URL and be one of the following file types-
-            ".png", ".jpg", ".jpeg", ".gif", or ".gifv".
-           If the 
+          ".png", ".jpg", ".jpeg", ".gif", or ".gifv".
+          If the 
           image is invalid, you should return the user to the form (at the same
-          URL) and show them their error. I'm checking for elements with one
+          URL) and show them their error.
+        details: >
+          I'm checking for elements with one
           of the following
           classes- {{errorClasses}}. The invalid location I submitted was
           "{{event.location}}".
@@ -278,7 +311,9 @@ scenarios:
           Dates must be be in the format "2006-01-02T15:04" and also be in the
           future. If the 
           date is invalid, you should return the user to the form (at the same
-          URL) and show them their error. The bad I'm checking for elements with one
+          URL) and show them their error.
+        details: >
+          The bad I'm checking for elements with one
           of the following
           classes- {{errorClasses}}. The invalid date I submitted was
           "{{event.date}}".
@@ -289,7 +324,9 @@ scenarios:
           If I submit valid event information, you should create the new
           event and then redirect me to the event detail page at "/events/ID"
           where "ID" is the id of the new event. There should be no errors
-          on the page. I'm checking for elements with one
+          on the page.
+        details: >
+          I'm checking for elements with one
           of the following
           classes- {{errorClasses}}. The valid event I submitted was 
           "{{event.title}}" at "{{event.location}}" on "{{event.date}}"

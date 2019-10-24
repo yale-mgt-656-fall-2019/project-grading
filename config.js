@@ -27,6 +27,10 @@ const itSchema = yup.object().shape({
         .boolean()
         .required()
         .default(false),
+    ran: yup
+        .boolean()
+        .required()
+        .default(false),
     context: yup
         .object()
         .required()

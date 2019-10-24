@@ -10,6 +10,11 @@ const config = require('./config.js');
 const events = require('./events.js');
 const badevents = require('./badevents.js');
 
+if (!process.env.DEVELOPMENT) {
+    console.log = () => {};
+}
+
+
 nunjucks.configure({ autoescape: false });
 function confirmationHash(x) {
     return crypto
@@ -48,8 +53,14 @@ function showOutput(testSuite, course, nickname, url) {
                 nickname,
             };
             const status = test.passed ? '✅' : '❌';
-            const it = nunjucks.renderString(test.it, contextData);
-            let testDesc = nunjucks.renderString(test.desc, contextData);
+            let rawDesc = test.desc;
+            if (test.ran) {
+                rawDesc += test.details || '';
+            } else {
+                rawDesc += '  This test was not run because one of the prior tests failed.';
+            }
+            const it = nunjucks.renderString(test.it.replace('\n', ' '), contextData);
+            let testDesc = nunjucks.renderString(rawDesc, contextData);
             if (test.wrap) {
                 testDesc = wrap(testDesc);
             }
@@ -76,8 +87,14 @@ function recordTestStatus(status, testSuite, whenKey, itKey, context) {
         const tests = scenario.tests.map((t) => {
             const test = cloneObject(t);
             if (scenario.key === whenKey && test.key === itKey) {
+                test.ran = true;
                 test.passed = status;
-                test.context = Object.assign(context || {}, test.context);
+                test.context = {
+                    ...test.context,
+                    ...context,
+                    passed: test.passed,
+                    ran: test.ran,
+                };
             }
             return test;
         });
@@ -167,16 +184,8 @@ async function findStrings(page, strings) {
 async function checkStrings(testSuite, thePage, whenKey, itKey, strings, evalFunc, context) {
     let passed;
     try {
-        // console.log(`going to search for ${strings}`);
         const stringsFound = await findStrings(thePage, strings);
-        // await thePage.screenshot({
-        //     path: `screenshot-${strings[0]}.png`,
-        //     fullPage: true
-        // });
-
-        // console.log(`stringsFound = ${stringsFound}`);
         passed = evalFunc(stringsFound);
-        // console.log(`passed = ${passed}`);
     } catch (e) {
         passed = false;
     }
@@ -211,6 +220,7 @@ async function stringExists(thePage, string) {
 let screenshotNumber = 0;
 async function takeScreenshot(thePage) {
     screenshotNumber += 1;
+    console.log(`Taking screenshot ${screenshotNumber}`);
     return thePage.screenshot({ path: `screenshot-${screenshotNumber}.png`, fullPage: true });
 }
 
@@ -220,16 +230,21 @@ async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eve
         const orginalURL = thePage.url();
         await novalidate(thePage);
         const e = eventDetails.event;
-        // console.log(eventDetails.flaw);
-        // console.log(eventDetails);
         const formTitleSelector = 'form input[type="text"][name="title"]';
         // Sometimes people's sites will have a brain fart under the
         // load, including mine. Not sure WTF. Here, I'm trying to reload
         // page if the form doesn't appear in a timely fashion.
+        console.log(`Testing with flaw: ${eventDetails.flaw}...`);
         try {
-            await thePage.waitForSelector(formTitleSelector, { timeout: 10000 });
+            console.log('...waiting for selector ', new Date());
+            await thePage.waitForSelector(formTitleSelector, { timeout: 5000 });
+            console.log('...found ', new Date());
         } catch (err) {
-            await thePage.goto(eventCreationURL, { timeout: 10000 });
+            console.log('...Did not find selector, reloading page ', new Date());
+            await thePage.goto(eventCreationURL, {
+                timeout: 5000, waitUntil: 'networkidle2',
+            });
+            console.log('...done waiting ', new Date());
         }
         await thePage.type(formTitleSelector, e.title);
         await thePage.type('form input[type="text"][name="location"]', e.location);
@@ -238,19 +253,22 @@ async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eve
             // eslint-disable-next-line no-param-reassign
             el.value = d;
         }, e.date);
-        await takeScreenshot(thePage);
+        // await takeScreenshot(thePage);
 
         const rsvpSubmitButton = await thePage.$(submitButtonSelector);
+        const navPromise = thePage.waitForNavigation({ timeout: 5000 });
         await rsvpSubmitButton.click();
-        await thePage.waitForNavigation();
+        console.log('...submiting event creation form', new Date());
+        await navPromise;
         const hasError = await selectorExists(thePage, formErrorSelector);
         const url = thePage.url();
         const context = {
             event: e,
             errorClasses: formErrorSelector.replace(/\./g, ''),
         };
-        await takeScreenshot(thePage);
+        // await takeScreenshot(thePage);
         if (eventDetails.flaw) {
+            console.log(`hasError = ${hasError}, url = ${url}`);
             testSuiteCopy = recordTestStatus(
                 hasError && url === orginalURL,
                 testSuiteCopy,
@@ -286,8 +304,9 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
         await thePage.type('form input[type="email"][name="email"]', email);
 
         const rsvpSubmitButton = await thePage.$(submitButtonSelector);
+        const navPromise = thePage.waitForNavigation();
         await rsvpSubmitButton.click();
-        await thePage.waitForNavigation();
+        await navPromise;
 
         // Type some random string into the email field so that we don't
         // get false positives when we check whether or not the person
@@ -386,7 +405,7 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
     });
 
     const finish = async () => {
-        console.log(showOutput(testSuite, course, nickname, url));
+        process.stdout.write(showOutput(testSuite, course, nickname, url));
         await browser.close();
         return true;
     };
@@ -635,10 +654,10 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
         if (response.status() === 200) {
             apiEventDetailExists = true;
         }
-        testSuite = recordTestStatus(apiEventDetailExists, testSuite, 'apiEventDetail', 'exists');
     } catch (e) {
         console.debug(`Caught exception ${e}`);
     }
+    testSuite = recordTestStatus(apiEventDetailExists, testSuite, 'apiEventDetail', 'exists');
 
     if (apiEventDetailExists) {
         let apiEventDetailParsed = false;

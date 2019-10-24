@@ -1,6 +1,11 @@
 const chance = require('chance').Chance();
 const moment = require('moment');
 
+if (!process.env.DEVELOPMENT) {
+    console.log = () => {};
+    console.debug = () => {};
+}
+
 function rand(myArray) {
     return myArray[Math.floor(Math.random() * myArray.length)];
 }
