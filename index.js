@@ -208,8 +208,13 @@ async function stringExists(thePage, string) {
     return (await findStrings(thePage, [string]))[0];
 }
 
+let screenshotNumber = 0;
+async function takeScreenshot(thePage) {
+    screenshotNumber += 1;
+    return thePage.screenshot({ path: `screenshot-${screenshotNumber}.png`, fullPage: true });
+}
 
-async function createNewEvent(testSuite, thePage, whenKey, eventDetails) {
+async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eventDetails) {
     let testSuiteCopy = cloneObject(testSuite);
     try {
         const orginalURL = thePage.url();
@@ -217,14 +222,23 @@ async function createNewEvent(testSuite, thePage, whenKey, eventDetails) {
         const e = eventDetails.event;
         // console.log(eventDetails.flaw);
         // console.log(eventDetails);
-        await thePage.type('form input[type="text"][name="title"]', e.title);
+        const formTitleSelector = 'form input[type="text"][name="title"]';
+        // Sometimes people's sites will have a brain fart under the
+        // load, including mine. Not sure WTF. Here, I'm trying to reload
+        // page if the form doesn't appear in a timely fashion.
+        try {
+            await thePage.waitForSelector(formTitleSelector, { timeout: 10000 });
+        } catch (err) {
+            await thePage.goto(eventCreationURL, { timeout: 10000 });
+        }
+        await thePage.type(formTitleSelector, e.title);
         await thePage.type('form input[type="text"][name="location"]', e.location);
         await thePage.type('form input[type="url"][name="image"]', e.image);
         await thePage.$eval('form input[type="datetime-local"][name="date"]', (el, d) => {
             // eslint-disable-next-line no-param-reassign
             el.value = d;
         }, e.date);
-        await thePage.screenshot({ path: 'screenshot.png', fullPage: true });
+        await takeScreenshot(thePage);
 
         const rsvpSubmitButton = await thePage.$(submitButtonSelector);
         await rsvpSubmitButton.click();
@@ -235,6 +249,7 @@ async function createNewEvent(testSuite, thePage, whenKey, eventDetails) {
             event: e,
             errorClasses: formErrorSelector.replace(/\./g, ''),
         };
+        await takeScreenshot(thePage);
         if (eventDetails.flaw) {
             testSuiteCopy = recordTestStatus(
                 hasError && url === orginalURL,
@@ -250,7 +265,6 @@ async function createNewEvent(testSuite, thePage, whenKey, eventDetails) {
             // console.log(`hasError = ${hasError}`);
             // console.log(`correctPath = ${correctPath}`);
             // console.log(`titleExists = ${titleExists}`);
-            await thePage.screenshot({ path: 'screenshot2.png', fullPage: true });
             testSuiteCopy = recordTestStatus(
                 !hasError && correctPath && titleExists,
                 testSuiteCopy,
@@ -696,7 +710,7 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
         for (let i = 0; i < theBadEvents.length; i += 1) {
             const e = theBadEvents[i];
             // eslint-disable-next-line no-await-in-loop
-            testSuite = await createNewEvent(testSuite, page, 'eventCreation', e);
+            testSuite = await createNewEvent(testSuite, page, eventCreationURL, 'eventCreation', e);
         }
     }
 

@@ -87,7 +87,7 @@ function randomFacultyLocation() {
         'house',
         'underground bunker',
         'offgrid warehouse',
-        'evil villian lair',
+        'lair',
         'Manhattan penthouse',
         'roofdeck',
         'abandoned warehouse',
