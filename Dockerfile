@@ -1,4 +1,4 @@
-FROM alpine:20190925
+FROM alpine:latest
 
 # See this complaint about package version pinning in Alpine.
 # TLDR: old packages are dropped from apk repo.
@@ -32,5 +32,4 @@ USER pptruser
 WORKDIR ${WORKDIR}
 ADD package.json package-lock.json ${WORKDIR}
 RUN npm install
-COPY index.js config.yaml config.js events.js ${WORKDIR}
-
+COPY index.js config.yaml config.js events.js badevents.js ${WORKDIR}
