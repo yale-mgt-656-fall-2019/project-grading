@@ -9,6 +9,11 @@ you're "failing", and how to pass the test if you're "failing".
 You can run the testing code online at
 [https://grading.656.mba](https://grading.656.mba).
 Most people will want to run the grading code online.
+When you run the grading code online give it 1) your
+class number (656 or 660); 2) your team nickname; and 3)
+the URL where your app is running. (Of course, if you
+run the grading code online your app will need to be online
+as well---you can't test localhost from grading.656.mba.)
 
 You can also run this code locally on your computer
 if you have Docker and bash installed on your system.
