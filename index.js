@@ -12,6 +12,7 @@ const badevents = require('./badevents.js');
 
 if (!process.env.DEVELOPMENT) {
     console.log = () => {};
+    console.debug = () => {};
 }
 
 
