@@ -1,5 +1,5 @@
 module.exports = [{
-    id: 0,
+    id: 1,
     title: 'SOM House Party',
     // Note that JavaScript months are zero-indexed,
     // so, month zero is January. This is Jan 17th
@@ -10,7 +10,7 @@ module.exports = [{
     attending: ['kyle.jensen@yale.edu', 'kim.kardashian@yale.edu'],
 },
 {
-    id: 1,
+    id: 2,
     title: 'BBQ party for hackers and nerds',
     date: new Date(2019, 10, 19, 19, 0, 0),
     image: 'http://i.imgur.com/7pe2k.gif',
@@ -18,7 +18,7 @@ module.exports = [{
     attending: ['kyle.jensen@yale.edu', 'kim.kardashian@yale.edu'],
 },
 {
-    id: 2,
+    id: 3,
     title: 'BBQ for managers',
     date: new Date(2019, 12, 2, 18, 0, 0),
     image: 'http://i.imgur.com/CJLrRqh.gif',
@@ -26,7 +26,7 @@ module.exports = [{
     attending: ['kim.kardashian@yale.edu'],
 },
 {
-    id: 4,
+    id: 5,
     title: 'Cooking lessons for the busy business student',
     date: new Date(2019, 12, 21, 19, 0, 0),
     image: 'http://i.imgur.com/02KT9.gif',
