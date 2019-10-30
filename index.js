@@ -149,6 +149,7 @@ async function validatePageMarkup(data) {
         if (result.messages.length === 0) {
             return true;
         }
+        console.log(JSON.stringify(result, ' ', 4));
         return result.messages.every((a) => a.type !== 'error');
     }
     return false;
