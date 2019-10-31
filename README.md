@@ -27,6 +27,15 @@ like
 That assumes you're running your project (app) code on
 localhost 8080.
 
+Note that you will need to run 
+
+```
+./admin.sh build
+```
+
+before running this code for the first time (and every time 
+the grading code changes).
+
 ## Caveats
 
 - This code will likely change. When it changes I will
