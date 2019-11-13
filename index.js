@@ -237,6 +237,7 @@ async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eve
         // load, including mine. Not sure WTF. Here, I'm trying to reload
         // page if the form doesn't appear in a timely fashion.
         console.log(`Testing with flaw: ${eventDetails.flaw}...`);
+        //$('form').each(function() { this.reset() }); //Ensure form inputs are clear before entering text
         try {
             console.log('...waiting for selector ', new Date());
             await thePage.waitForSelector(formTitleSelector, { timeout: 5000 });
@@ -248,6 +249,12 @@ async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eve
             });
             console.log('...done waiting ', new Date());
         }
+        const rsvpSubmitButton = await thePage.$(submitButtonSelector);
+        //Clear input fields
+        await thePage.$eval(formTitleSelector, el => el.value = '');
+        await thePage.$eval('form input[type="text"][name="location"]', el => el.value = '');
+        await thePage.$eval('form input[type="url"][name="image"]', el => el.value = '');
+        //Add new values
         await thePage.type(formTitleSelector, e.title);
         await thePage.type('form input[type="text"][name="location"]', e.location);
         await thePage.type('form input[type="url"][name="image"]', e.image);
@@ -257,10 +264,9 @@ async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eve
         }, e.date);
         // await takeScreenshot(thePage);
 
-        const rsvpSubmitButton = await thePage.$(submitButtonSelector);
         const navPromise = thePage.waitForNavigation({ timeout: 5000 });
         await rsvpSubmitButton.click();
-        console.log('...submiting event creation form', new Date());
+        console.log('...submitting event creation form', new Date());
         await navPromise;
         const hasError = await selectorExists(thePage, formErrorSelector);
         const url = thePage.url();
