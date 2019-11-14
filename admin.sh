@@ -1,9 +1,16 @@
 #!/bin/bash
 set -x
 set -v
-IMAGE_NAME="project-grading"
-AWS_ACCOUNT_NUMBER=`aws sts get-caller-identity --output text --query 'Account'`
-IMAGE_PATH="$AWS_ACCOUNT_NUMBER.dkr.ecr.us-east-1.amazonaws.com/$IMAGE_NAME"
+
+if [ $USER = "kyle" ]; then
+    IMAGE_NAME="project-grading"
+    AWS_ACCOUNT_NUMBER=`aws sts get-caller-identity --output text --query 'Account'`
+    IMAGE_PATH="$AWS_ACCOUNT_NUMBER.dkr.ecr.us-east-1.amazonaws.com/$IMAGE_NAME"
+else
+    IMAGE_NAME="project-grading"
+    IMAGE_PATH="$IMAGE_NAME"
+fi
+
 
 dopush(){
     dologin
