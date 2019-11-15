@@ -15,7 +15,6 @@ if (!process.env.DEVELOPMENT) {
     console.debug = () => {};
 }
 
-
 nunjucks.configure({ autoescape: false });
 function confirmationHash(x) {
     return crypto
@@ -58,7 +57,8 @@ function showOutput(testSuite, course, nickname, url) {
             if (test.ran) {
                 rawDesc += test.details || '';
             } else {
-                rawDesc += '  This test was not run because one of the prior tests failed.';
+                rawDesc
+          += '  This test was not run because one of the prior tests failed.';
             }
             const it = nunjucks.renderString(test.it.replace('\n', ' '), contextData);
             let testDesc = nunjucks.renderString(rawDesc, contextData);
@@ -162,14 +162,22 @@ async function countSelectors(page, selectors) {
     return elementCounts;
 }
 
-async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, evalFunc, context) {
+async function checkSelectors(
+    testSuite,
+    thePage,
+    whenKey,
+    itKey,
+    cssSelectors,
+    evalFunc,
+    context,
+) {
     let passed;
     try {
         const counts = await countSelectors(thePage, cssSelectors);
         // console.log(`selectors = ${cssSelectors}`);
         // console.log(`counts = ${counts}`);
         passed = evalFunc(counts);
-        // console.log(`passed = ${passed}`);
+    // console.log(`passed = ${passed}`);
     } catch (e) {
         passed = false;
     }
@@ -178,12 +186,20 @@ async function checkSelectors(testSuite, thePage, whenKey, itKey, cssSelectors, 
 
 async function findStrings(page, strings) {
     return Promise.all(
-        // eslint-disable-next-line no-undef
+    // eslint-disable-next-line no-undef
         strings.map((s) => page.evaluate((x) => window.find(x, false, false, true), s)),
     );
 }
 
-async function checkStrings(testSuite, thePage, whenKey, itKey, strings, evalFunc, context) {
+async function checkStrings(
+    testSuite,
+    thePage,
+    whenKey,
+    itKey,
+    strings,
+    evalFunc,
+    context,
+) {
     let passed;
     try {
         const stringsFound = await findStrings(thePage, strings);
@@ -199,7 +215,7 @@ const oneOrMore = (x) => x[0] >= 1;
 const allOnes = (f) => f.every((x) => x === 1);
 const allTrue = (f) => f.every((x) => x === true);
 const allFalse = (f) => f.every((x) => x === false);
-const submitButtonSelector = 'form input[type="submit"], form button[type="submit"]';
+const submitButtonSelector =  'form input[type="submit"], form button[type="submit"]';
 const formErrorSelector = '.error, .errors, .form-error, .form-errors';
 
 async function novalidate(page) {
@@ -223,10 +239,19 @@ let screenshotNumber = 0;
 async function takeScreenshot(thePage) {
     screenshotNumber += 1;
     console.log(`Taking screenshot ${screenshotNumber}`);
-    return thePage.screenshot({ path: `screenshot-${screenshotNumber}.png`, fullPage: true });
+    return thePage.screenshot({
+        path: `screenshot-${screenshotNumber}.png`,
+        fullPage: true,
+    });
 }
 
-async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eventDetails) {
+async function createNewEvent(
+    testSuite,
+    thePage,
+    eventCreationURL,
+    whenKey,
+    eventDetails,
+) {
     let testSuiteCopy = cloneObject(testSuite);
     try {
         const orginalURL = thePage.url();
@@ -237,7 +262,7 @@ async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eve
         // load, including mine. Not sure WTF. Here, I'm trying to reload
         // page if the form doesn't appear in a timely fashion.
         console.log(`Testing with flaw: ${eventDetails.flaw}...`);
-        //$('form').each(function() { this.reset() }); //Ensure form inputs are clear before entering text
+        // $('form').each(function() { this.reset() }); //Ensure form inputs are clear before entering text
         try {
             console.log('...waiting for selector ', new Date());
             await thePage.waitForSelector(formTitleSelector, { timeout: 5000 });
@@ -245,23 +270,34 @@ async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eve
         } catch (err) {
             console.log('...Did not find selector, reloading page ', new Date());
             await thePage.goto(eventCreationURL, {
-                timeout: 5000, waitUntil: 'networkidle2',
+                timeout: 5000,
+                waitUntil: 'networkidle2',
             });
             console.log('...done waiting ', new Date());
         }
         const rsvpSubmitButton = await thePage.$(submitButtonSelector);
-        //Clear input fields
-        await thePage.$eval(formTitleSelector, el => el.value = '');
-        await thePage.$eval('form input[type="text"][name="location"]', el => el.value = '');
-        await thePage.$eval('form input[type="url"][name="image"]', el => el.value = '');
-        //Add new values
+        // Clear input fields
+        await thePage.$eval(formTitleSelector, (el) => (el.value = ''));
+        await thePage.$eval(
+            'form input[type="text"][name="location"]',
+            (el) => (el.value = ''),
+        );
+        await thePage.$eval(
+            'form input[type="url"][name="image"]',
+            (el) => (el.value = ''),
+        );
+        // Add new values
         await thePage.type(formTitleSelector, e.title);
         await thePage.type('form input[type="text"][name="location"]', e.location);
         await thePage.type('form input[type="url"][name="image"]', e.image);
-        await thePage.$eval('form input[type="datetime-local"][name="date"]', (el, d) => {
-            // eslint-disable-next-line no-param-reassign
-            el.value = d;
-        }, e.date);
+        await thePage.$eval(
+            'form input[type="datetime-local"][name="date"]',
+            (el, d) => {
+                // eslint-disable-next-line no-param-reassign
+                el.value = d;
+            },
+            e.date,
+        );
         // await takeScreenshot(thePage);
 
         const navPromise = thePage.waitForNavigation({ timeout: 5000 });
@@ -305,7 +341,15 @@ async function createNewEvent(testSuite, thePage, eventCreationURL, whenKey, eve
     return testSuiteCopy;
 }
 
-async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, isOK) {
+async function checkRSVP(
+    testSuite,
+    thePage,
+    whenKey,
+    itKey,
+    eventURL,
+    email,
+    isOK,
+) {
     let testSuiteCopy = cloneObject(testSuite);
     try {
         await novalidate(thePage);
@@ -363,7 +407,9 @@ async function checkRSVP(testSuite, thePage, whenKey, itKey, eventURL, email, is
 
 async function parsePageJSON(page) {
     // eslint-disable-next-line no-undef
-    const content = await page.evaluate(() => document.querySelector('body').innerText);
+    const content = await page.evaluate(
+        () => document.querySelector('body').innerText,
+    );
     return JSON.parse(content);
 }
 
@@ -435,10 +481,18 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
     } catch (e) {
         return finish();
     }
-    const doTest = (whenKey, itKey, cssSelectors, evalFunc, context) => checkSelectors(testSuite, page, whenKey, itKey, cssSelectors, evalFunc, context);
+    const doTest = (whenKey, itKey, cssSelectors, evalFunc, context) => checkSelectors(
+            testSuite,
+            page,
+            whenKey,
+            itKey,
+            cssSelectors,
+            evalFunc,
+            context,
+        );
 
     if (homePageUp) {
-        // ---------------------------------------------------------- title
+    // ---------------------------------------------------------- title
         const homePageTitle = await page.title();
         if (typeof homePageTitle === 'string' && homePageTitle.length > 0) {
             testSuite = recordTestStatus(true, testSuite, 'homepage', 'title', {
@@ -455,10 +509,21 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
             // console.log(`caught exception doing validation: ${e}`);
             markupValidates = false;
         }
-        testSuite = recordTestStatus(markupValidates, testSuite, 'homepage', 'valid');
+        testSuite = recordTestStatus(
+            markupValidates,
+            testSuite,
+            'homepage',
+            'valid',
+        );
 
         // ---------------------------------------------------------- cssFrameworks
-        const frameworks = ['bootstrap', 'bulma', 'material', 'foundation', 'semantic'];
+        const frameworks = [
+            'bootstrap',
+            'bulma',
+            'material',
+            'foundation',
+            'semantic',
+        ];
         testSuite = await doTest(
             'homepage',
             'cssFramework',
@@ -474,15 +539,30 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
             (x) => x.every((e) => e > 0),
         );
 
-        testSuite = await doTest('homepage', 'eventTimes', ['time'], (x) => x[0] >= 3);
+        testSuite = await doTest(
+            'homepage',
+            'eventTimes',
+            ['time'],
+            (x) => x[0] >= 3,
+        );
         testSuite = await doTest(
             'homepage',
             'aboutPageLink',
             ['footer a[href*="/about"]'],
             oneOrMore,
         );
-        testSuite = await doTest('homepage', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
-        testSuite = await doTest('homepage', 'logo', ['header img[id="logo"]'], oneOrMore);
+        testSuite = await doTest(
+            'homepage',
+            'homePageLink',
+            ['footer a[href="/"]'],
+            oneOrMore,
+        );
+        testSuite = await doTest(
+            'homepage',
+            'logo',
+            ['header img[id="logo"]'],
+            oneOrMore,
+        );
         testSuite = await doTest(
             'homepage',
             'createEventLink',
@@ -537,7 +617,12 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
     } catch (e) {
         eventDetailPageExists = false;
     }
-    testSuite = recordTestStatus(eventDetailPageExists, testSuite, 'eventDetail', 'exists');
+    testSuite = recordTestStatus(
+        eventDetailPageExists,
+        testSuite,
+        'eventDetail',
+        'exists',
+    );
     testSuite = await doTest(
         'eventDetail',
         'aboutPageLink',
@@ -547,9 +632,15 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
 
     testSuite = await doTest('eventDetail', 'title', ['h1'], oneOrMore);
 
-    testSuite = await doTest('eventDetail', 'noError', [formErrorSelector], none, {
-        errorClasses: formErrorSelector.replace(/\./g, ''),
-    });
+    testSuite = await doTest(
+        'eventDetail',
+        'noError',
+        [formErrorSelector],
+        none,
+        {
+            errorClasses: formErrorSelector.replace(/\./g, ''),
+        },
+    );
 
     testSuite = await doTest(
         'eventDetail',
@@ -570,8 +661,18 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
         allTrue,
     );
 
-    testSuite = await doTest('eventDetail', 'homePageLink', ['footer a[href="/"]'], oneOrMore);
-    testSuite = await doTest('eventDetail', 'rsvpForm', ['form[method="post"]'], oneOrMore);
+    testSuite = await doTest(
+        'eventDetail',
+        'homePageLink',
+        ['footer a[href="/"]'],
+        oneOrMore,
+    );
+    testSuite = await doTest(
+        'eventDetail',
+        'rsvpForm',
+        ['form[method="post"]'],
+        oneOrMore,
+    );
     testSuite = await doTest(
         'eventDetail',
         'rsvpFormEmail',
@@ -635,16 +736,23 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
 
     let apiEventsPresent = false;
     try {
-        // Get all the event ids from the API
+    // Get all the event ids from the API
         const eventIDs = apiEvents.events.map((e) => e.id);
         // See if all the events we expect are in there
-        apiEventsPresent = events.map((e) => eventIDs.includes(e.id)).every((x) => x === true);
-        // console.log(`eventIDs = ${eventIDs}`);
-        // console.log(`apiEventsPresent = ${apiEventsPresent}`);
+        apiEventsPresent = events
+            .map((e) => eventIDs.includes(e.id))
+            .every((x) => x === true);
+    // console.log(`eventIDs = ${eventIDs}`);
+    // console.log(`apiEventsPresent = ${apiEventsPresent}`);
     } catch (e) {
         console.debug(`caught exception ${e}`);
     }
-    testSuite = recordTestStatus(apiEventsPresent, testSuite, 'api', 'defaultEvents');
+    testSuite = recordTestStatus(
+        apiEventsPresent,
+        testSuite,
+        'api',
+        'defaultEvents',
+    );
 
     // ###################################
     // ################################### API EventDetail tests
@@ -665,7 +773,12 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
     } catch (e) {
         console.debug(`Caught exception ${e}`);
     }
-    testSuite = recordTestStatus(apiEventDetailExists, testSuite, 'apiEventDetail', 'exists');
+    testSuite = recordTestStatus(
+        apiEventDetailExists,
+        testSuite,
+        'apiEventDetail',
+        'exists',
+    );
 
     if (apiEventDetailExists) {
         let apiEventDetailParsed = false;
@@ -677,7 +790,12 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
             // console.log(`caught exception ${e}`);
             apiEventDetail = {};
         }
-        testSuite = recordTestStatus(apiEventDetailParsed, testSuite, 'apiEventDetail', 'json');
+        testSuite = recordTestStatus(
+            apiEventDetailParsed,
+            testSuite,
+            'apiEventDetail',
+            'json',
+        );
         if (apiEventDetailParsed) {
             testSuite = recordTestStatus(
                 apiEventDetail.title === event.title,
@@ -704,14 +822,25 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
     } catch (e) {
         eventCreationPageExists = false;
     }
-    testSuite = recordTestStatus(eventCreationPageExists, testSuite, 'eventCreation', 'exists');
+    testSuite = recordTestStatus(
+        eventCreationPageExists,
+        testSuite,
+        'eventCreation',
+        'exists',
+    );
 
     let eventCreationFormOK = false;
     if (eventCreationPageExists) {
         testSuite = await doTest('eventCreation', 'form', ['form'], oneOrMore);
-        testSuite = await doTest('eventCreation', 'noError', [formErrorSelector], none, {
-            errorClasses: formErrorSelector.replace(/\./g, ''),
-        });
+        testSuite = await doTest(
+            'eventCreation',
+            'noError',
+            [formErrorSelector],
+            none,
+            {
+                errorClasses: formErrorSelector.replace(/\./g, ''),
+            },
+        );
         const formSelectors = [
             'form input[type="text"][name="title"]',
             'form input[type="text"][name="location"]',
@@ -728,16 +857,25 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
                 selectors: formSelectors,
             },
         );
-        eventCreationFormOK = getTestSuiteResult(testSuite, 'eventCreation', 'formFields');
+        eventCreationFormOK = getTestSuiteResult(
+            testSuite,
+            'eventCreation',
+            'formFields',
+        );
     }
-
 
     if (eventCreationFormOK) {
         const theBadEvents = badevents.get();
         for (let i = 0; i < theBadEvents.length; i += 1) {
             const e = theBadEvents[i];
             // eslint-disable-next-line no-await-in-loop
-            testSuite = await createNewEvent(testSuite, page, eventCreationURL, 'eventCreation', e);
+            testSuite = await createNewEvent(
+                testSuite,
+                page,
+                eventCreationURL,
+                'eventCreation',
+                e,
+            );
         }
     }
 
