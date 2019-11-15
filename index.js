@@ -723,32 +723,43 @@ function getTestSuiteResult(testSuite, whenKey, itKey) {
     }
     testSuite = recordTestStatus(apiExists, testSuite, 'api', 'exists');
 
-    let apiEvents = {};
-    let apiEventsParsed = false;
+    let apiEventListResponse = {};
+    let apiEventListResponseParsed = false;
     try {
-        apiEvents = await parsePageJSON(page);
-        apiEventsParsed = true;
+        apiEventListResponse = await parsePageJSON(page);
+        apiEventListResponseParsed = true;
     } catch (e) {
         console.debug(`caught exception ${e}`);
-        apiEvents = {};
+        apiEventListResponse = {};
     }
-    testSuite = recordTestStatus(apiEventsParsed, testSuite, 'api', 'json');
+    testSuite = recordTestStatus(
+        apiEventListResponseParsed,
+        testSuite,
+        'api',
+        'json',
+    );
 
-    let apiEventsPresent = false;
+    let apiEventListResponsePresent = false;
     try {
     // Get all the event ids from the API
-        const eventIDs = apiEvents.events.map((e) => e.id);
+        let apiEvents;
+        if (Array.isArray(apiEventListResponse)) {
+            apiEvents = apiEventListResponse;
+        } else {
+            apiEvents = apiEventListResponse.events || apiEventListResponse.Events;
+        }
+        const eventIDs = apiEvents.map((e) => e.id);
         // See if all the events we expect are in there
-        apiEventsPresent = events
+        apiEventListResponsePresent = events
             .map((e) => eventIDs.includes(e.id))
             .every((x) => x === true);
     // console.log(`eventIDs = ${eventIDs}`);
-    // console.log(`apiEventsPresent = ${apiEventsPresent}`);
+    // console.log(`apiEventListResponsePresent = ${apiEventListResponsePresent}`);
     } catch (e) {
         console.debug(`caught exception ${e}`);
     }
     testSuite = recordTestStatus(
-        apiEventsPresent,
+        apiEventListResponsePresent,
         testSuite,
         'api',
         'defaultEvents',
