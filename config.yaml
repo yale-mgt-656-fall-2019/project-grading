@@ -199,9 +199,13 @@ scenarios:
       - it: has all the default events
         key: defaultEvents
         desc: >
-          Your JSON should be formatted such that it has a key "events" that stores an array of
-          events. E.g. it should looks something like this
-          https://bit.ly/2J5IA2g
+          Your JSON should be formatted such that either 1) it has a key
+          "events" that stores
+          an array of
+          events; or, 2) it just displays an array of events. E.g. it should
+          looks something
+          like one of the formats here
+          https://bit.ly/2Xr7mjs.
         details: >
           I'm checking for events with ids
           {% for event in events -%}
