@@ -35,7 +35,14 @@ function newTitle() {
     ]);
     return rand([
         `${game} tournament`,
-        rand(['Rave', 'BBQ', 'Luau', 'Karaoke', 'High tea', 'Intervention']),
+        rand([
+            'Rad Rave',
+            'Big BBQ',
+            'Lovely Luau',
+            'Karaoke',
+            'High tea',
+            'Intervention',
+        ]),
         `${kindOfParty} party`,
     ]);
 }
@@ -59,7 +66,6 @@ function newDatetime() {
     const d = moment(randomDate());
     return d.format('YYYY-MM-DDTHH:mm');
 }
-
 
 function randomGif() {
     const gifs = [
@@ -98,9 +104,9 @@ function randomFacultyLocation() {
         'abandoned warehouse',
         'panic room',
     ]);
-    let possessive = '\'s';
+    let possessive = "'s";
     if (faculty.endsWith('s')) {
-        possessive = '\'';
+        possessive = "'";
     }
     return `${faculty}${possessive} ${location}`;
 }
